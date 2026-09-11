@@ -32,6 +32,7 @@ const Atlas = (() => {
 
   let index = [];
   let meta = {};
+  let counties = {};
   const shardCache = new Map();
 
   const num = (v) => (v === null || v === undefined || v === "" ? "" : Number(v).toLocaleString());
@@ -75,12 +76,19 @@ const Atlas = (() => {
   }
 
   async function load() {
-    const [idx, m] = await Promise.all([
+    const [idx, m, c] = await Promise.all([
       fetch("data/index.json").then((r) => r.json()),
       fetch("data/meta.json").then((r) => r.json()),
+      // County names live in their own small file so the build can add them
+      // without reissuing the whole index. Absent is survivable.
+      fetch("data/counties.json").then((r) => (r.ok ? r.json() : {})).catch(() => ({})),
     ]);
     index = idx;
     meta = m;
+    counties = c || {};
+    index.forEach((r) => {
+      if (!r.county && r.fips && counties[r.fips]) r.county = counties[r.fips];
+    });
     return { index, meta };
   }
 
@@ -90,7 +98,11 @@ const Atlas = (() => {
       shardCache.set(state, fetch(`data/by-state/${state}.json`).then((r) => r.json()));
     }
     const shard = await shardCache.get(state);
-    return shard[record.id] || null;
+    const found = shard[record.id] || null;
+    if (found && !found.county && found.fips && counties[found.fips]) {
+      found.county = counties[found.fips];
+    }
+    return found;
   }
 
   /* ---------------------------------------------------------- filtering */
