@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About the data - USDA Section 515 Property Atlas</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <h1>USDA Section 515 Property Atlas</h1>
+    <p class="sub">Rural Rental Housing and Farm Labor Housing, from USDA Rural Development open data</p>
+  </div>
+  <nav class="tabs">
+    <a href="index.html">Table</a>
+    <a href="map.html">Map</a>
+    <a href="about.html" class="active">About the data</a>
+  </nav>
+</header>
+<main>
+  <div class="panel" style="padding:22px 26px;max-width:860px">
+    <h2 style="margin-top:0;font-size:18px">What this is</h2>
+    <p>A searchable atlas of every active property in USDA Rural Development's multifamily
+    portfolio: Section 515 Rural Rental Housing, plus Section 514 off-farm and on-farm Farm
+    Labor Housing. Each property carries its location, unit mix, Section 521 rental assistance
+    count, tax credit status, ownership, and the year USDA projects its loan will pay off and
+    the property will leave the program.</p>
+
+    <h2 style="font-size:18px">Where the data comes from</h2>
+    <p>Two files published by USDA Rural Development, both public domain:</p>
+    <ul>
+      <li><strong>Property characteristics.</strong> The active projects workbook on
+      <a href="https://www.sc.egov.usda.gov/data/MFH_section_515.html" target="_blank" rel="noopener">USDA's Section 514/515 data page</a>,
+      with the <a href="https://www.sc.egov.usda.gov/data/files/MFH_Section_515/ActiveProjects/USDA-RUR.PDF" target="_blank" rel="noopener">public data dictionary</a>.</li>
+      <li><strong>Program exit data.</strong> The loan maturity and payoff projections on
+      <a href="https://www.sc.egov.usda.gov/data/MFH.html" target="_blank" rel="noopener">USDA's multifamily housing data index</a>,
+      with its own <a href="https://www.sc.egov.usda.gov/data/files/MFH/USDA%20Multifamily%20Housing%20Program%20Exit%20Data_Data%20Dictionary-May%202023.pdf" target="_blank" rel="noopener">data dictionary</a>.</li>
+    </ul>
+    <p>The two files are joined on USDA's MFIS project key, which is the borrower number,
+    project number, and check digit combined. The join is close to complete. The handful of
+    properties without exit data show a blank exit year rather than a guess.</p>
+
+    <h2 style="font-size:18px">How to read the exit year</h2>
+    <p>USDA's <em>estimated property exit year</em> is the year the agency expects the property
+    to leave the program, keyed to loan maturity. It is not the same as the
+    <em>loan payoff year</em>, which reflects prepayment status and the remaining principal
+    balance, and the two often differ. A property can also become eligible to prepay well before
+    either date, which the <em>prepay eligible</em> fields capture. All three are shown on the
+    detail panel so the timing question can be read properly rather than reduced to one number.</p>
+    <p>Nothing here is a prediction of what an owner will do. It is USDA's own projection of
+    when the regulatory clock runs out.</p>
+
+    <h2 style="font-size:18px">Known limits</h2>
+    <ul>
+      <li>USDA refreshes these files a few times a year, and the two carry different as-of
+      dates. Both dates are printed at the foot of the table and map pages.</li>
+      <li>Only active properties appear. Anything that has already exited is gone from the source file.</li>
+      <li>County names come from the Census county crosswalk. If that file has not been added to
+      the build, the county column falls back to the five-digit FIPS code.</li>
+      <li>Coordinates are USDA's. A small number of properties have no usable coordinates and
+      appear in the table but not on the map.</li>
+      <li>Unit counts are authorized units, which can differ from what is physically standing.</li>
+    </ul>
+
+    <h2 style="font-size:18px">Reuse</h2>
+    <p>The source data is federal open data in the public domain. The full joined dataset is
+    available as <a href="data/properties.csv">CSV</a> and
+    <a href="data/properties.geojson">GeoJSON</a>.</p>
+  </div>
+</main>
+</body>
+</html>

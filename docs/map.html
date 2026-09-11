@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map - USDA Section 515 Property Atlas</title>
+<meta name="description" content="Searchable atlas of USDA Section 515 and 514 rural rental housing properties, built from USDA Rural Development open data.">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <h1>USDA Section 515 Property Atlas</h1>
+    <p class="sub" id="masthead-sub">Rural Rental Housing and Farm Labor Housing, from USDA Rural Development open data</p>
+  </div>
+  <nav class="tabs">
+    <a href="index.html">Table</a>
+    <a href="map.html" class="active">Map</a>
+    <a href="about.html">About the data</a>
+  </nav>
+</header>
+<main>
+    <div class="panel filters" id="filterbar">
+      <div>
+        <label for="f-q">Search</label>
+        <input type="search" id="f-q" placeholder="Property, city, management" autocomplete="off">
+      </div>
+      <div>
+        <label for="f-state">State</label>
+        <select id="f-state"><option value="">All states</option></select>
+      </div>
+      <div>
+        <label for="f-county">County</label>
+        <select id="f-county"><option value="">All counties</option></select>
+      </div>
+      <div>
+        <label for="f-program">Program</label>
+        <select id="f-program">
+          <option value="">All programs</option>
+          <option value="0">515 Rural Rental</option>
+          <option value="1">514 Off-Farm Labor</option>
+          <option value="2">514 On-Farm Labor</option>
+        </select>
+      </div>
+      <div>
+        <label for="f-rental">Tenant type</label>
+        <select id="f-rental">
+          <option value="">All types</option>
+          <option value="FA">Family</option>
+          <option value="EL">Elderly</option>
+          <option value="MX">Mixed</option>
+          <option value="CG">Congregate</option>
+          <option value="GH">Group Home</option>
+        </select>
+      </div>
+      <div>
+        <label for="f-horizon">Exiting within</label>
+        <select id="f-horizon">
+          <option value="">Any year</option>
+          <option value="3">3 years</option>
+          <option value="5">5 years</option>
+          <option value="10">10 years</option>
+          <option value="15">15 years</option>
+        </select>
+      </div>
+      <div>
+        <label for="f-lihtc">LIHTC</label>
+        <select id="f-lihtc">
+          <option value="">Either</option>
+          <option value="y">Has tax credits</option>
+          <option value="n">No tax credits</option>
+        </select>
+      </div>
+      <div>
+        <label for="f-units">Min units</label>
+        <input type="number" id="f-units" min="0" step="4" placeholder="0">
+      </div>
+      <div class="check"><input type="checkbox" id="f-ra"><label for="f-ra" style="margin:0;text-transform:none;font-size:13px;letter-spacing:0;color:var(--ink)">Has rental assistance</label></div>
+      <div class="check"><input type="checkbox" id="f-prepay"><label for="f-prepay" style="margin:0;text-transform:none;font-size:13px;letter-spacing:0;color:var(--ink)">Prepay eligible now</label></div>
+      <div><button class="btn" id="f-reset" type="button">Reset</button></div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="panel" style="padding:10px">
+      <div id="map"></div>
+    </div>
+
+    <p class="note" id="sourcenote"></p>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/map.js"></script>
+</body>
+</html>
