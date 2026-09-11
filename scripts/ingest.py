@@ -157,21 +157,55 @@ PROFIT_TYPE = {
 }
 
 
-def load_counties(raw_dir: Path) -> dict:
-    """Optional Census county crosswalk, pipe-delimited, FIPS -> county name.
+LEGACY_FIPS = {
+    # Split in 2019 into Chugach (02063) and Copper River (02066).
+    "02261": "Valdez-Cordova Census Area",
+}
 
-    File: https://www2.census.gov/geo/docs/reference/codes2020/national_county2020.txt
-    Saved as data/raw/county_fips.txt. Absent is fine, county names are then blank.
+
+def load_counties(raw_dir: Path) -> dict:
+    """FIPS -> county name lookup from data/raw/county_fips.txt.
+
+    Two formats are accepted:
+
+    1. The compact form this repo ships: five-digit FIPS followed by the name,
+       where a leading "~" means the name is complete as written and anything
+       else has had the word "County" trimmed off the end.
+         01001Autauga            -> Autauga County
+         22001~Acadia Parish     -> Acadia Parish
+    2. The raw Census pipe-delimited file, if you prefer to drop that in:
+       https://www2.census.gov/geo/docs/reference/codes2020/national_county2020.txt
+
+    Missing file is fine. County names are then blank and the site falls back
+    to showing the FIPS code.
     """
     path = raw_dir / "county_fips.txt"
     if not path.exists():
         return {}
-    lookup = {}
+
+    lookup: dict[str, str] = {}
     for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-        parts = line.split("|")
-        if len(parts) < 5 or parts[1].upper() == "STATEFP":
+        line = line.rstrip("\n")
+        if not line.strip():
             continue
-        lookup[f"{parts[1].strip()}{parts[2].strip()}"] = parts[4].strip()
+
+        if "|" in line:
+            parts = line.split("|")
+            if len(parts) < 5 or parts[1].strip().upper() == "STATEFP":
+                continue
+            lookup[f"{parts[1].strip()}{parts[2].strip()}"] = parts[4].strip()
+            continue
+
+        if len(line) < 6 or not line[:5].isdigit():
+            continue
+        fips, name = line[:5], line[5:].strip()
+        lookup[fips] = name[1:] if name.startswith("~") else f"{name} County"
+
+    # Retired FIPS codes that still appear in USDA's files. Census dropped them,
+    # so they are not in the crosswalk, but the properties are still real.
+    for fips, name in LEGACY_FIPS.items():
+        lookup.setdefault(fips, name)
+
     return lookup
 
 
@@ -416,7 +450,11 @@ def write_outputs(records: list[dict], out_dir: Path, meta: dict) -> None:
         writer.writeheader()
         writer.writerows(records)
 
+    counties = {r["fips"]: r["county"] for r in records if r["fips"] and r["county"]}
+    (out_dir / "counties.json").write_text(json.dumps(counties, separators=(",", ":")), encoding="utf-8")
+
     meta["shard_count"] = len(shards)
+    meta["county_names_resolved"] = len(counties)
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
 
