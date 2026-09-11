@@ -1,0 +1,42 @@
+name: Refresh USDA data
+
+on:
+  schedule:
+    # 06:15 UTC on the 1st of every month. USDA posts a few times a year;
+    # a monthly check picks up a new file within weeks of it landing.
+    - cron: "15 6 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download the current USDA workbooks
+        run: python scripts/fetch_data.py
+
+      - name: Rebuild the site data
+        run: python scripts/ingest.py
+
+      - name: Commit any changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/data
+          if git diff --staged --quiet; then
+            echo "No change in the published data."
+          else
+            git commit -m "Refresh USDA data $(date -u +%Y-%m-%d)"
+            git push
+          fi
