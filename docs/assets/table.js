@@ -105,9 +105,24 @@
     paintRows();
   }
 
+  /** When arriving from the Companies page, say so and offer a way out. */
+  function paintManagerBanner() {
+    const key = Atlas.managerParam();
+    const host = document.getElementById("mgmt-banner");
+    if (!host) return;
+    if (!key) { host.innerHTML = ""; host.hidden = true; return; }
+
+    const match = Atlas.index.find((r) => Atlas.normManager(r.management) === key);
+    const label = match ? Atlas.titleCase(match.management) : Atlas.esc(key);
+    host.hidden = false;
+    host.innerHTML = `<span>Filtered to properties managed by <strong>${label}</strong></span>
+                      <a href="index.html">Clear</a>`;
+  }
+
   function refresh() {
     current = Atlas.apply(Atlas.readFilters(document));
     paintStats(current);
+    paintManagerBanner();
     page = 0;
     sortAndPaint();
   }

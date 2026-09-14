@@ -41,6 +41,10 @@ const Atlas = (() => {
   // the Worker's address to read the gated data instead.
   const BASE = (window.ATLAS_DATA_BASE || "data").replace(/\/+$/, "");
   const REMOTE = /^https?:\/\//i.test(BASE);
+  // Mason's PBS8 database. Section 8 contract detail lives there; this atlas
+  // links out rather than keeping a second copy of the same data.
+  const HAP_DB_URL = "https://mrare-cmd.github.io/HAP-Database/";
+
   const TOKEN_KEY = "atlas.session";
   const HASH_KEY = "atlas.hash";
 
@@ -287,12 +291,31 @@ const Atlas = (() => {
   const money = (v) => (v === null || v === undefined ? "" : "$" + Math.round(v).toLocaleString());
   const dash = (v) => (v === null || v === undefined || v === "" ? "&mdash;".replace("&mdash;", "-") : v);
 
+  // Words that stay as written, and abbreviations with a preferred casing.
+  const KEEP_UPPER = new Set(["LLC", "LLP", "LP", "USA", "HUD", "USDA", "II", "III", "IV", "VI"]);
+  const FORCED = { INC: "Inc", CO: "Co", CORP: "Corp", LTD: "Ltd", APT: "Apt", APTS: "Apts", MGMT: "Mgmt" };
+  const SMALL_WORDS = new Set(["AND", "THE", "OF", "FOR", "AT", "ON", "IN"]);
+
+  /**
+   * USDA records names in capitals. Title-casing them reads better, but a blunt
+   * pass turns initialisms into nonsense: "TM ASSOCIATES" becomes "Tm", and
+   * "J & A" becomes "J & A" only by luck. Short all-capital tokens are left
+   * alone, and a few abbreviations get a preferred spelling.
+   */
   function titleCase(text) {
     if (!text) return "";
-    return esc(String(text).toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase())
-      .replace(/\bLlc\b/g, "LLC").replace(/\bLp\b/g, "LP").replace(/\bInc\b/g, "Inc")
-      .replace(/\bLtd\b/g, "Ltd").replace(/\bIi\b/g, "II").replace(/\bIii\b/g, "III")
-      .replace(/\bApts?\b/g, (m) => (m.length === 3 ? "Apt" : "Apts")));
+    const out = String(text).split(/(\s+)/).map((tok) => {
+      const bare = tok.replace(/[^A-Za-z0-9&]/g, "");
+      if (!bare) return tok;
+      const upper = bare.toUpperCase();
+      if (FORCED[upper]) return tok.replace(bare, FORCED[upper]);
+      if (tok === tok.toUpperCase()) {
+        if (KEEP_UPPER.has(upper)) return tok;
+        if (bare.length <= 3 && !SMALL_WORDS.has(upper)) return tok;
+      }
+      return tok.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase());
+    }).join("");
+    return esc(out);
   }
 
   function horizonClass(exitYear) {
@@ -360,6 +383,69 @@ const Atlas = (() => {
     return found;
   }
 
+  /* ---------------------------------------------------------- managers */
+
+  /**
+   * USDA's management names are free text, so the same firm appears as
+   * "MACO MANAGEMENT CO INC", "Maco Management Co., Inc." and so on. Fold case,
+   * punctuation and the trailing corporate suffix so those group together.
+   * Deliberately conservative: it will not merge genuinely different firms that
+   * happen to share a first word.
+   */
+  function normManager(name) {
+    if (!name) return null;
+    let s = String(name).toUpperCase().replace(/[.,]/g, " ").replace(/\s+/g, " ").trim();
+    // Strip suffixes until the name stops changing. Running once is not enough
+    // for "MACO MANAGEMENT CO INC", and more importantly a single pass is not
+    // idempotent: normalizing an already-normalized key would keep eating
+    // words, so a value round-tripped through a URL would stop matching.
+    for (let i = 0; i < 6; i++) {
+      const next = s.replace(/\s+(INC|LLC|L L C|LP|LTD|CO|CORP|COMPANY)$/, "").trim();
+      if (next === s) break;
+      s = next;
+    }
+    return s || null;
+  }
+
+  /** Roll the property list up by management company. */
+  function managers(rows) {
+    const thisYear = new Date().getFullYear();
+    const out = new Map();
+    for (const r of rows || index) {
+      const key = normManager(r.management);
+      if (!key) continue;
+      let e = out.get(key);
+      if (!e) {
+        e = { key, label: r.management, properties: 0, units: 0, ra: 0, lihtc: 0,
+              exiting: 0, states: new Set(), labels: new Map() };
+        out.set(key, e);
+      }
+      e.properties += 1;
+      e.units += r.units || 0;
+      e.ra += r.ra_units || 0;
+      if (r.lihtc) e.lihtc += 1;
+      if (r.exit_year && r.exit_year - thisYear <= 10) e.exiting += 1;
+      if (r.state) e.states.add(r.state);
+      e.labels.set(r.management, (e.labels.get(r.management) || 0) + 1);
+    }
+    for (const e of out.values()) {
+      // Show whichever spelling USDA uses most often for this firm.
+      e.label = [...e.labels.entries()].sort((a, b) => b[1] - a[1])[0][0];
+      e.stateList = [...e.states].sort();
+      e.raShare = e.units ? e.ra / e.units : null;
+      e.avgSize = e.properties ? Math.round(e.units / e.properties) : 0;
+      delete e.labels;
+      delete e.states;
+    }
+    return [...out.values()];
+  }
+
+  /** A manager filter arriving as ?mgmt= on the table or map page. */
+  function managerParam() {
+    const v = new URLSearchParams(location.search).get("mgmt");
+    return v ? normManager(v) : "";
+  }
+
   /* ---------------------------------------------------------- filtering */
 
   function readFilters(root) {
@@ -373,6 +459,7 @@ const Atlas = (() => {
       lihtc: get("f-lihtc")?.value || "",
       horizon: get("f-horizon")?.value || "",
       minUnits: parseInt(get("f-units")?.value || "0", 10) || 0,
+      mgmt: managerParam(),
       raOnly: get("f-ra")?.checked || false,
       prepay: get("f-prepay")?.checked || false,
     };
@@ -390,6 +477,7 @@ const Atlas = (() => {
       if (filters.lihtc === "y" && !r.lihtc) return false;
       if (filters.lihtc === "n" && r.lihtc) return false;
       if (filters.minUnits && (r.units || 0) < filters.minUnits) return false;
+      if (filters.mgmt && normManager(r.management) !== filters.mgmt) return false;
       if (filters.raOnly && !(r.ra_units > 0)) return false;
       if (filters.prepay && !r.prepay_eligible_now) return false;
       if (horizon && !(r.exit_year && r.exit_year <= horizon)) return false;
@@ -532,6 +620,16 @@ const Atlas = (() => {
       </section>
 
       <section>
+        <h3>Related</h3>
+        <dl class="kv">
+          <dt>Project-based Section 8</dt>
+          <dd><a href="${HAP_DB_URL}" target="_blank" rel="noopener">Look up in the PBS8 Database</a></dd>
+        </dl>
+        <p class="note">Contract rents, renewal option and rent-to-SAFMR live in the PBS8
+        Database rather than here, so nothing is duplicated between the two.</p>
+      </section>
+
+      <section>
         <h3>Affordability</h3>
         <dl class="kv">
           <dt>LIHTC financed</dt><dd>${d.lihtc === null ? "-" : d.lihtc ? "Yes" : "No"}</dd>
@@ -583,6 +681,8 @@ const Atlas = (() => {
     load, apply, summarize, readFilters, buildFilterBar,
     openDrawer, horizonClass, horizonLabel, titleCase, placeCase, num, pct, money,
     lock, unlock, signOut, sessionEmail,
+    normManager, managers, managerParam,
+    HAP_DB_URL,
     dataUrl, fetchData, download, esc, signInUrl, promptSignIn,
     get index() { return index; },
     get meta() { return meta; },
