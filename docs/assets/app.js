@@ -35,6 +35,169 @@ const Atlas = (() => {
   let counties = {};
   const shardCache = new Map();
 
+  /* ---------------------------------------------------------- data source */
+
+  // Local folder by default. Set window.ATLAS_DATA_BASE in assets/config.js to
+  // the Worker's address to read the gated data instead.
+  const BASE = (window.ATLAS_DATA_BASE || "data").replace(/\/+$/, "");
+  const REMOTE = /^https?:\/\//i.test(BASE);
+  const TOKEN_KEY = "atlas.session";
+  const HASH_KEY = "atlas.hash";
+
+  function dataUrl(name) {
+    return REMOTE ? `${BASE}/data/${name}` : `${BASE}/${name}`;
+  }
+
+  /**
+   * Session handling.
+   *
+   * The Worker hands the token back in the URL fragment, which browsers never
+   * transmit to a server. We move it into storage and wipe the address bar, then
+   * send it as an Authorization header on every data request. A header rather
+   * than a cookie, because a cookie between this page and the Worker's own
+   * domain is a third-party cookie: Safari blocks those outright and Chrome is
+   * retiring them, so a cookie session would work here and fail for someone else.
+   */
+  function captureToken() {
+    const match = /[#&]atlas_token=([^&]+)/.exec(location.hash || "");
+    if (!match) return;
+    try {
+      localStorage.setItem(TOKEN_KEY, decodeURIComponent(match[1]));
+    } catch { /* private browsing with storage disabled, carry on in memory */ }
+    memoryToken = decodeURIComponent(match[1]);
+
+    // Put back whatever fragment the page had before sign-in sent us away.
+    let restore = "";
+    try {
+      restore = sessionStorage.getItem(HASH_KEY) || "";
+      sessionStorage.removeItem(HASH_KEY);
+    } catch { /* nothing to restore */ }
+    history.replaceState(null, "", location.pathname + location.search + restore);
+  }
+
+  let memoryToken = null;
+
+  function token() {
+    if (memoryToken) return memoryToken;
+    try {
+      return localStorage.getItem(TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  function clearToken() {
+    memoryToken = null;
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch { /* nothing stored */ }
+  }
+
+  function authHeaders() {
+    const t = token();
+    return t ? { Authorization: `Bearer ${t}` } : {};
+  }
+
+  async function request(name) {
+    return fetch(dataUrl(name), REMOTE ? { headers: authHeaders() } : {});
+  }
+
+  /**
+   * Fetch one data file, turning a signed-out response into a sign-in prompt
+   * rather than a broken page.
+   */
+  async function fetchData(name, { optional = false } = {}) {
+    let res;
+    try {
+      res = await request(name);
+    } catch (err) {
+      if (optional) return null;
+      if (REMOTE) promptSignIn();
+      throw err;
+    }
+
+    if (res.status === 401 || res.status === 403) {
+      clearToken();
+      promptSignIn();
+      throw new Error("Sign-in required");
+    }
+    if (!res.ok) {
+      if (optional) return null;
+      let detail = "";
+      try {
+        detail = (await res.json()).detail || "";
+      } catch { /* not JSON */ }
+      throw new Error(`${name} returned ${res.status}${detail ? `: ${detail}` : ""}`);
+    }
+    return res.json();
+  }
+
+  /**
+   * Download a file the user asked for. A plain link cannot carry an
+   * Authorization header, so fetch it and hand the browser a blob.
+   */
+  async function download(name, filename) {
+    const res = await request(name);
+    if (res.status === 401 || res.status === 403) {
+      clearToken();
+      promptSignIn();
+      return;
+    }
+    if (!res.ok) throw new Error(`${name} returned ${res.status}`);
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename || name.split("/").pop();
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  }
+
+  function signInUrl() {
+    try {
+      if (location.hash) sessionStorage.setItem(HASH_KEY, location.hash);
+    } catch { /* storage unavailable, the fragment is just lost */ }
+    const back = location.origin + location.pathname + location.search;
+    return `${BASE}/login?return=${encodeURIComponent(back)}`;
+  }
+
+  function promptSignIn() {
+    if (document.getElementById("signin-gate")) return;
+    const gate = document.createElement("div");
+    gate.id = "signin-gate";
+    gate.className = "drawer-backdrop";
+    gate.style.display = "flex";
+    gate.style.alignItems = "center";
+    gate.style.justifyContent = "center";
+    gate.innerHTML = `
+      <div style="background:#fff;border-radius:8px;padding:26px 30px;max-width:400px;text-align:center">
+        <h2 style="margin:0 0 8px;font-size:17px">Sign in to load the data</h2>
+        <p style="margin:0 0 18px;font-size:13px;color:#66708a;line-height:1.5">
+          The property data sits behind your work account. Signing in opens a
+          Microsoft login and returns you here.
+        </p>
+        <a class="btn primary" id="signin-go" style="text-decoration:none;display:inline-block">Sign in</a>
+      </div>`;
+    document.body.appendChild(gate);
+    gate.querySelector("#signin-go").href = signInUrl();
+  }
+
+  function esc(value) {
+    if (value === null || value === undefined) return "";
+    return String(value).replace(/[&<>"']/g, (c) => (
+      { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+    ));
+  }
+
+  captureToken();
+
+  // If the token arrives without a full page load, pick it up and retry.
+  window.addEventListener("hashchange", () => {
+    if (!/[#&]atlas_token=/.test(location.hash)) return;
+    captureToken();
+    document.getElementById("signin-gate")?.remove();
+    location.reload();
+  });
+
   const num = (v) => (v === null || v === undefined || v === "" ? "" : Number(v).toLocaleString());
   const pct = (v) => (v === null || v === undefined ? "" : (v * 100).toFixed(0) + "%");
   const money = (v) => (v === null || v === undefined ? "" : "$" + Math.round(v).toLocaleString());
@@ -42,10 +205,10 @@ const Atlas = (() => {
 
   function titleCase(text) {
     if (!text) return "";
-    return String(text).toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase())
+    return esc(String(text).toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase())
       .replace(/\bLlc\b/g, "LLC").replace(/\bLp\b/g, "LP").replace(/\bInc\b/g, "Inc")
       .replace(/\bLtd\b/g, "Ltd").replace(/\bIi\b/g, "II").replace(/\bIii\b/g, "III")
-      .replace(/\bApts?\b/g, (m) => (m.length === 3 ? "Apt" : "Apts"));
+      .replace(/\bApts?\b/g, (m) => (m.length === 3 ? "Apt" : "Apts")));
   }
 
   function horizonClass(exitYear) {
@@ -72,16 +235,16 @@ const Atlas = (() => {
     if (!text) return "";
     const parts = String(text).split(",");
     if (parts.length < 2) return titleCase(text);
-    return titleCase(parts.slice(0, -1).join(",")) + ", " + parts[parts.length - 1].trim().toUpperCase();
+    return titleCase(parts.slice(0, -1).join(",")) + ", " + esc(parts[parts.length - 1].trim().toUpperCase());
   }
 
   async function load() {
     const [idx, m, c] = await Promise.all([
-      fetch("data/index.json").then((r) => r.json()),
-      fetch("data/meta.json").then((r) => r.json()),
+      fetchData("index.json"),
+      fetchData("meta.json"),
       // County names live in their own small file so the build can add them
       // without reissuing the whole index. Absent is survivable.
-      fetch("data/counties.json").then((r) => (r.ok ? r.json() : {})).catch(() => ({})),
+      fetchData("counties.json", { optional: true }),
     ]);
     index = idx;
     meta = m;
@@ -95,7 +258,7 @@ const Atlas = (() => {
   async function detail(record) {
     const state = (record.state || "ZZ").toUpperCase();
     if (!shardCache.has(state)) {
-      shardCache.set(state, fetch(`data/by-state/${state}.json`).then((r) => r.json()));
+      shardCache.set(state, fetchData(`by-state/${state}.json`));
     }
     const shard = await shardCache.get(state);
     const found = shard[record.id] || null;
@@ -247,19 +410,19 @@ const Atlas = (() => {
       <header>
         <button class="close" aria-label="Close">&times;</button>
         <h2>${titleCase(d.name)}</h2>
-        <div class="where">${titleCase(d.address || "")}${d.address ? ", " : ""}${titleCase(d.city)}, ${d.state} ${d.zip || ""}</div>
+        <div class="where">${titleCase(d.address || "")}${d.address ? ", " : ""}${titleCase(d.city)}, ${esc(d.state)} ${esc(d.zip) || ""}</div>
       </header>
 
       <section>
         <h3>Program exit</h3>
         <dl class="kv">
           <dt>Estimated exit year</dt><dd><span class="pill ${cls}">${exitLabel}</span></dd>
-          <dt>Estimated exit date</dt><dd>${d.exit_date || "-"}</dd>
+          <dt>Estimated exit date</dt><dd>${esc(d.exit_date) || "-"}</dd>
           <dt>Loan payoff year</dt><dd>${d.loan_payoff_year || "-"}</dd>
           <dt>Prepay eligible year</dt><dd>${d.prepay_eligible_year || "-"}</dd>
           <dt>Prepay eligible now</dt><dd>${d.prepay_eligible_now === null ? "-" : d.prepay_eligible_now ? "Yes" : "No"}</dd>
-          <dt>Natural maturity</dt><dd>${d.natural_maturity || "-"}</dd>
-          <dt>UPB maturity</dt><dd>${d.upb_maturity || "-"}</dd>
+          <dt>Natural maturity</dt><dd>${esc(d.natural_maturity) || "-"}</dd>
+          <dt>UPB maturity</dt><dd>${esc(d.upb_maturity) || "-"}</dd>
           <dt>Balloon payment</dt><dd>${d.balloon === null ? "-" : d.balloon ? "Yes" : "No"}</dd>
         </dl>
       </section>
@@ -280,8 +443,8 @@ const Atlas = (() => {
         <h3>Affordability</h3>
         <dl class="kv">
           <dt>LIHTC financed</dt><dd>${d.lihtc === null ? "-" : d.lihtc ? "Yes" : "No"}</dd>
-          <dt>Tax credit expires</dt><dd>${d.lihtc_expires || "-"}</dd>
-          <dt>Restrictive clause expires</dt><dd>${d.restrictive_clause_expires || "-"}</dd>
+          <dt>Tax credit expires</dt><dd>${esc(d.lihtc_expires) || "-"}</dd>
+          <dt>Restrictive clause expires</dt><dd>${esc(d.restrictive_clause_expires) || "-"}</dd>
           <dt>MPR revitalized</dt><dd>${d.revitalized ? "Yes" : "No"}</dd>
         </dl>
       </section>
@@ -290,27 +453,27 @@ const Atlas = (() => {
         <h3>Ownership and loan</h3>
         <dl class="kv">
           <dt>Borrower</dt><dd>${titleCase(d.borrower_name) || "-"}</dd>
-          <dt>Borrower type</dt><dd>${d.borrower_type || "-"}</dd>
+          <dt>Borrower type</dt><dd>${esc(d.borrower_type) || "-"}</dd>
           <dt>Borrower location</dt><dd>${placeCase(d.borrower_city_state) || "-"}</dd>
           <dt>Management agent</dt><dd>${titleCase(d.management) || "-"}</dd>
-          <dt>Profit type</dt><dd>${d.profit_type || "-"}</dd>
+          <dt>Profit type</dt><dd>${esc(d.profit_type) || "-"}</dd>
           <dt>Loan amount (source)</dt><dd>${money(d.loan_amt) || "-"}</dd>
           <dt>Rate at closing</dt><dd>${d.interest_rate !== null && d.interest_rate !== undefined ? d.interest_rate + "%" : "-"}</dd>
           <dt>Original loan term</dt><dd>${d.orig_loan_term ? Number(d.orig_loan_term).toFixed(2).replace(/\.00$/, "") + " yrs" : "-"}</dd>
           <dt>FY of obligation</dt><dd>${d.fy_loan_obligation || "-"}</dd>
           <dt>Remaining term</dt><dd>${d.remaining_term_days ? Math.round(d.remaining_term_days).toLocaleString() + " days" : "-"}</dd>
-          <dt>Date of operation</dt><dd>${d.date_of_operation || "-"}</dd>
+          <dt>Date of operation</dt><dd>${esc(d.date_of_operation) || "-"}</dd>
         </dl>
       </section>
 
       <section>
         <h3>Identifiers</h3>
         <dl class="kv">
-          <dt>Program</dt><dd>${d.program || "-"}</dd>
-          <dt>Tenant type</dt><dd>${d.rental_type || "-"}</dd>
-          <dt>Borrower / project / check</dt><dd>${d.borrower_id || "?"} / ${d.project_id || "?"} / ${d.check_digit || "?"}</dd>
-          <dt>MFIS project key</dt><dd>${d.id}</dd>
-          <dt>County FIPS</dt><dd>${d.fips || "-"}${d.county ? " (" + d.county + ")" : ""}</dd>
+          <dt>Program</dt><dd>${esc(d.program) || "-"}</dd>
+          <dt>Tenant type</dt><dd>${esc(d.rental_type) || "-"}</dd>
+          <dt>Borrower / project / check</dt><dd>${esc(d.borrower_id) || "?"} / ${esc(d.project_id) || "?"} / ${esc(d.check_digit) || "?"}</dd>
+          <dt>MFIS project key</dt><dd>${esc(d.id)}</dd>
+          <dt>County FIPS</dt><dd>${esc(d.fips) || "-"}${d.county ? " (" + esc(d.county) + ")" : ""}</dd>
           <dt>Coordinates</dt><dd>${d.lat && d.lon ? `${d.lat.toFixed(5)}, ${d.lon.toFixed(5)}` : "-"}</dd>
         </dl>
         ${d.lat && d.lon ? `<p class="note"><a href="https://www.google.com/maps?q=${d.lat},${d.lon}" target="_blank" rel="noopener">Open in Google Maps</a></p>` : ""}
@@ -327,6 +490,7 @@ const Atlas = (() => {
     PROGRAMS, RENTAL, STATE_NAMES,
     load, apply, summarize, readFilters, buildFilterBar,
     openDrawer, horizonClass, horizonLabel, titleCase, placeCase, num, pct, money,
+    dataUrl, fetchData, download, esc, signInUrl, promptSignIn,
     get index() { return index; },
     get meta() { return meta; },
   };

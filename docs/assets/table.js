@@ -6,8 +6,8 @@
   const COLUMNS = [
     { key: "name", label: "Property", cls: "name", fmt: (r) => Atlas.titleCase(r.name) },
     { key: "city", label: "City", fmt: (r) => Atlas.titleCase(r.city) },
-    { key: "county", label: "County", fmt: (r) => r.county || (r.fips ? r.fips : "") },
-    { key: "state", label: "St" },
+    { key: "county", label: "County", fmt: (r) => Atlas.esc(r.county || r.fips || "") },
+    { key: "state", label: "St", fmt: (r) => Atlas.esc(r.state) },
     { key: "units", label: "Units", cls: "num", fmt: (r) => Atlas.num(r.units) },
     { key: "ra_units", label: "RA units", cls: "num", fmt: (r) => Atlas.num(r.ra_units) },
     { key: "ra_share", label: "RA %", cls: "num", fmt: (r) => Atlas.pct(r.ra_share) },
@@ -145,7 +145,15 @@
       `Property characteristics as of ${meta.property_report_date}, program exit data as of ${meta.exit_report_date}. ` +
       `${meta.joined_count.toLocaleString()} of ${meta.property_count.toLocaleString()} properties carry exit data. ` +
       `Built ${meta.built} from USDA Rural Development open data. ` +
-      `<a href="data/properties.csv">Download the full dataset</a>.`;
+      `<a href="#" id="full-csv">Download the full dataset</a>.`;
+
+    document.getElementById("full-csv").addEventListener("click", (e) => {
+      e.preventDefault();
+      Atlas.download("properties.csv", "usda-515-full.csv").catch((err) => {
+        document.getElementById("sourcenote").insertAdjacentHTML("beforeend",
+          ` <span style="color:#c0392b">Download failed: ${Atlas.esc(err.message)}</span>`);
+      });
+    });
   }).catch((err) => {
     document.getElementById("rows").innerHTML =
       `<tr><td class="loading" colspan="12">Could not load the data files. ${err}</td></tr>`;
