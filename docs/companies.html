@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Companies - USDA Section 515 Property Atlas</title>
+<meta name="description" content="Searchable atlas of USDA Section 515 and 514 rural rental housing properties, built from USDA Rural Development open data.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="mask-icon" href="favicon.svg" color="#081937">
+<link rel="stylesheet" href="assets/styles.css">
+<script src="assets/config.js"></script>
+<script>
+// Hide the interface before first paint when the data is gated and there is no
+// session yet. Without this the table frame flashes up and is then covered.
+(function () {
+  var base = window.ATLAS_DATA_BASE || "data";
+  if (!/^https?:\/\//i.test(base)) return;
+  var stored = null;
+  try { stored = localStorage.getItem("atlas.session"); } catch (e) {}
+  if (!stored && !/[#&]atlas_token=/.test(location.hash || "")) {
+    document.documentElement.className += " atlas-locked";
+  }
+})();
+</script>
+
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <h1>USDA Section 515 Property Atlas</h1>
+    <p class="sub" id="masthead-sub">Rural Rental Housing and Farm Labor Housing, from USDA Rural Development open data</p>
+    <div class="session" id="session"></div>
+  </div>
+  <p class="asof" id="asof"></p>
+  <nav class="tabs">
+    <a href="index.html">Table</a>
+    <a href="companies.html" class="active">Companies</a>
+    <a href="map.html">Map</a>
+    <a href="about.html">About the data</a>
+  </nav>
+</header>
+<main>
+    <div class="panel filters" id="filterbar">
+      <div>
+        <label for="c-q">Search companies</label>
+        <input type="search" id="c-q" placeholder="Company name" autocomplete="off">
+      </div>
+      <div class="narrow">
+        <label for="c-min">Min properties</label>
+        <input type="number" id="c-min" min="0" step="1" placeholder="0">
+      </div>
+      <div class="narrow"><button class="btn" id="c-reset" type="button">Reset</button></div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="panel">
+      <div class="table-wrap">
+        <table class="grid" id="grid">
+          <thead><tr id="headrow"></tr></thead>
+          <tbody id="rows"><tr><td class="loading" colspan="9">Loading companies...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pager"><span class="count" id="count"></span></div>
+    </div>
+
+    <p class="note" id="sourcenote"></p>
+</main>
+<script src="assets/app.js"></script>
+<script src="assets/companies.js"></script>
+</body>
+</html>

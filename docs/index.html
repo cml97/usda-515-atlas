@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>USDA Section 515 Property Atlas</title>
 <meta name="description" content="Searchable atlas of USDA Section 515 and 514 rural rental housing properties, built from USDA Rural Development open data.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="mask-icon" href="favicon.svg" color="#081937">
 <link rel="stylesheet" href="assets/styles.css">
 <script src="assets/config.js"></script>
 <script>
@@ -32,6 +34,7 @@
   <p class="asof" id="asof"></p>
   <nav class="tabs">
     <a href="index.html" class="active">Table</a>
+    <a href="companies.html">Companies</a>
     <a href="map.html">Map</a>
     <a href="about.html">About the data</a>
   </nav>
@@ -96,6 +99,8 @@
       <div class="check"><input type="checkbox" id="f-prepay"><label for="f-prepay">Prepay eligible now</label></div>
       <div class="narrow"><button class="btn" id="f-reset" type="button">Reset</button></div>
     </div>
+
+    <div class="chip-banner" id="mgmt-banner" hidden></div>
 
     <div class="stats" id="stats"></div>
 
