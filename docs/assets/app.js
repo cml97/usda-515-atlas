@@ -45,6 +45,37 @@ const Atlas = (() => {
   // links out rather than keeping a second copy of the same data.
   const HAP_DB_URL = "https://mrare-cmd.github.io/HAP-Database/";
 
+  /* Deep link into the PBS8 Database, whose filters are read from the URL
+     fragment by its applyFilterHash(). Confirmed keys:
+
+       property -> opens that Property ID's dashboard outright
+       subj / comp -> mark a subject and comparables in the table and map
+       name -> Property Name       city / state / county / zip / msa -> chips
+       umin / umax -> unit range   q -> global search
+
+     `property` is exact and cannot resolve to more than one row, so it leads.
+     The name, city and state keys ride along behind it on purpose: Property
+     IDs are HUD's, not ours, and if HUD ever reissues one the dashboard simply
+     will not open. With the filters attached, a stale ID lands the reader on
+     the right property anyway instead of on 24,000 rows.
+
+     The fragment is parsed once at load and there is no hashchange listener,
+     so these links must open in a new tab. Every caller below passes
+     target="_blank", which sidesteps it. */
+  function hapDeepLink(d) {
+    if (!d || !d.s8) return HAP_DB_URL;
+    const parts = [];
+    const add = (k, v) => {
+      if (v === null || v === undefined || v === "") return;
+      parts.push(k + "=" + encodeURIComponent(String(v).trim()));
+    };
+    add("property", d.s8_hud_property_id);
+    add("name", d.s8_hud_name);
+    add("city", d.s8_hud_city);
+    add("state", d.state);
+    return parts.length ? `${HAP_DB_URL}#${parts.join("&")}` : HAP_DB_URL;
+  }
+
   const TOKEN_KEY = "atlas.session";
   const HASH_KEY = "atlas.hash";
 
@@ -417,13 +448,14 @@ const Atlas = (() => {
       let e = out.get(key);
       if (!e) {
         e = { key, label: r.management, properties: 0, units: 0, ra: 0, lihtc: 0,
-              exiting: 0, states: new Set(), labels: new Map() };
+              exiting: 0, s8: 0, states: new Set(), labels: new Map() };
         out.set(key, e);
       }
       e.properties += 1;
       e.units += r.units || 0;
       e.ra += r.ra_units || 0;
       if (r.lihtc) e.lihtc += 1;
+      if (r.s8) e.s8 += 1;
       if (r.exit_year && r.exit_year - thisYear <= 10) e.exiting += 1;
       if (r.state) e.states.add(r.state);
       e.labels.set(r.management, (e.labels.get(r.management) || 0) + 1);
@@ -541,6 +573,11 @@ const Atlas = (() => {
       countySel.disabled = sorted.length === 0;
     }
 
+    // A state handed over in the URL (a link from the Companies page) should
+    // arrive already applied, not just sitting in the query string.
+    const urlState = (new URLSearchParams(location.search).get("state") || "").toUpperCase();
+    if (urlState && states.includes(urlState)) stateSel.value = urlState;
+
     refreshCounties();
     stateSel.addEventListener("change", () => { refreshCounties(); onChange(); });
 
@@ -563,6 +600,7 @@ const Atlas = (() => {
 
   function closeDrawer() {
     document.querySelectorAll(".drawer, .drawer-backdrop").forEach((el) => el.remove());
+    document.body.classList.remove("drawer-open");
   }
 
   async function openDrawer(record) {
@@ -575,6 +613,8 @@ const Atlas = (() => {
     panel.className = "drawer";
     panel.innerHTML = '<div class="loading">Loading property detail...</div>';
     document.body.append(backdrop, panel);
+    // The map's controls are hidden while this is open; see styles.css.
+    document.body.classList.add("drawer-open");
 
     const d = (await detail(record)) || record;
     const beds = d.beds || {};
@@ -620,13 +660,39 @@ const Atlas = (() => {
       </section>
 
       <section>
-        <h3>Related</h3>
+        <h3>Project-based Section 8</h3>
         <dl class="kv">
-          <dt>Project-based Section 8</dt>
-          <dd><a href="${HAP_DB_URL}" target="_blank" rel="noopener">Look up in the PBS8 Database</a></dd>
+          <dt>HAP contract</dt><dd>${d.s8 ? "Yes" : "No"}</dd>
+          ${d.s8 ? `
+          <dt>Contract number</dt><dd>${esc(d.s8_contract) || "-"}</dd>
+          <dt>Contract units</dt><dd>${num(d.s8_units)}</dd>
+          <dt>Contract expires</dt><dd>${esc(d.s8_expires) || "-"}</dd>
+          <dt>HUD program type</dt><dd>${esc(d.s8_program_type) || "-"}</dd>
+          <dt>Contract family</dt><dd>${
+            d.s8_is_hap
+              ? 'Section 8 HAP'
+              : `${esc(d.s8_doc_type) || "other"} <span class="warn">(not Section 8)</span>`
+          }</dd>` : ""}
         </dl>
-        <p class="note">Contract rents, renewal option and rent-to-SAFMR live in the PBS8
-        Database rather than here, so nothing is duplicated between the two.</p>
+        <p class="note">
+          ${d.s8
+            ? `${d.s8_is_hap ? "" : `<b>Mark-up-to-market does not apply here.</b> This is
+                  Section 202 or 811 project rental assistance, not Section 8, so there is no
+                  comparability-study path and rents move by budget-based adjustment. `}
+               Matched to the PBS8 Database on ${esc((d.s8_match || {}).evidence || "name")}.
+               ${(d.s8_match || {}).review
+                 ? `<b>Worth a check:</b> the names differ and the contract covers well under
+                    the property's unit count, so this address may hold two buildings.`
+                 : ""}
+               Contract rents, renewal option and rent-to-SAFMR live in the PBS8 Database
+               rather than here, so nothing is duplicated between the two.`
+            : `USDA's file carries no Section 8 flag, so this is matched against the PBS8
+               Database on address, ZIP, county and name. A property with a contract HUD
+               records under a different name or address can read as No.`}
+        </p>
+        <p><a href="${hapDeepLink(d)}" target="_blank" rel="noopener">${
+          d.s8 ? "Open this property in the PBS8 Database" : "Open the PBS8 Database"
+        }</a></p>
       </section>
 
       <section>
@@ -682,7 +748,7 @@ const Atlas = (() => {
     openDrawer, horizonClass, horizonLabel, titleCase, placeCase, num, pct, money,
     lock, unlock, signOut, sessionEmail,
     normManager, managers, managerParam,
-    HAP_DB_URL,
+    HAP_DB_URL, hapDeepLink,
     dataUrl, fetchData, download, esc, signInUrl, promptSignIn,
     get index() { return index; },
     get meta() { return meta; },

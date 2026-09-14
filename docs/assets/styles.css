@@ -164,6 +164,9 @@ main {
   color: var(--ink);
 }
 
+/* display:flex beats the hidden attribute, same trap as the chip banner. */
+.filters .check[hidden] { display: none; }
+
 .filters .check {
   display: flex;
   align-items: center;
@@ -307,10 +310,11 @@ table.grid td.name { white-space: normal; min-width: 210px; font-weight: 600; }
 .pager .count { color: var(--muted); font-size: 12.5px; }
 
 .drawer-backdrop {
+  /* above Leaflet's 1000 */
   position: fixed;
   inset: 0;
   background: rgba(8, 25, 55, .42);
-  z-index: 900;
+  z-index: 2000;
 }
 
 .drawer {
@@ -320,7 +324,7 @@ table.grid td.name { white-space: normal; min-width: 210px; font-weight: 600; }
   bottom: 0;
   width: min(480px, 100%);
   background: #fff;
-  z-index: 901;
+  z-index: 2001;
   overflow-y: auto;
   box-shadow: -3px 0 22px rgba(8, 25, 55, .2);
 }
@@ -376,6 +380,15 @@ table.grid td.name { white-space: normal; min-width: 210px; font-weight: 600; }
 .mix .cell span { font-size: 10.5px; color: var(--muted); }
 
 #map { height: calc(100vh - 300px); min-height: 420px; border-radius: 8px; }
+
+.grid td .yes { color: #1f7a4d; font-weight: 600; }
+.grid td .no  { color: var(--muted); }
+
+/* Leaflet puts its controls at z-index 1000, which left the program exit key
+   sitting on top of the detail panel and covering the numbers. The panel and
+   its backdrop have to clear every Leaflet layer, and the key is hidden
+   outright while the panel is open so it cannot compete. */
+body.drawer-open .leaflet-control-container { display: none; }
 
 .legend {
   background: #fff;
@@ -497,3 +510,69 @@ html.atlas-locked body {
 
 .chip-banner strong { color: var(--navy); }
 .chip-banner a { font-weight: 600; }
+
+/* ------------------------------------------------- about-the-data footnote */
+
+.datanote {
+  max-width: 900px;
+  margin: 26px auto 40px;
+  padding: 0 18px;
+}
+
+.datanote details {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.datanote summary {
+  cursor: pointer;
+  padding: 12px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  list-style: none;
+}
+
+.datanote summary::-webkit-details-marker { display: none; }
+
+.datanote summary::before {
+  content: "\25B8";
+  display: inline-block;
+  margin-right: 9px;
+  transition: transform .15s ease;
+}
+
+.datanote details[open] summary::before { transform: rotate(90deg); }
+.datanote summary:hover { color: var(--navy); }
+
+.datanote-body {
+  padding: 2px 20px 18px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.datanote-body h3 {
+  margin: 18px 0 6px;
+  font-size: 13.5px;
+  color: var(--navy);
+}
+
+.datanote-body h3:first-child { margin-top: 14px; }
+.datanote-body p, .datanote-body ul { margin: 0 0 9px; }
+.datanote-body ul { padding-left: 20px; }
+.datanote-body li { margin-bottom: 5px; }
+.datanote-body a { color: var(--seafoam); }
+
+@media (max-width: 700px) {
+  .datanote { padding: 0 12px; }
+  .datanote-body { padding: 2px 15px 15px; }
+}
+
+/* Section 202/811 PRAC marked inside a Section 8 "Yes" */
+.grid td .flagmark { color: var(--sorbet); font-weight: 700; cursor: help; margin-left: 1px; }
+.drawer .warn { color: var(--sorbet); font-weight: 600; }

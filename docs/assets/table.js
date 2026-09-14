@@ -12,6 +12,18 @@
     { key: "ra_units", label: "RA units", cls: "num", fmt: (r) => Atlas.num(r.ra_units) },
     { key: "ra_share", label: "RA %", cls: "num", fmt: (r) => Atlas.pct(r.ra_share) },
     {
+      key: "s8", label: "Section 8",
+      /* A minority of these are Section 202/811 PRAC rather than Section 8.
+         They stay a Yes, because they are project-based assistance all the
+         same, but they are marked so a mark-up-to-market read is not made off
+         a contract that has no MU2M path. */
+      fmt: (r) => (!r.s8
+        ? '<span class="no">No</span>'
+        : r.s8_is_hap === false
+          ? '<span class="yes">Yes<sup class="flagmark" title="Section 202/811 PRAC, not Section 8 - no mark-up-to-market">*</sup></span>'
+          : '<span class="yes">Yes</span>'),
+    },
+    {
       key: "exit_year", label: "Exit year", cls: "num",
       fmt: (r) => r.exit_year
         ? `<span class="pill ${Atlas.horizonClass(r.exit_year)}">${r.exit_year}</span>`

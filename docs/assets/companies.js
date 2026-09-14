@@ -10,6 +10,7 @@
     { key: "avgSize", label: "Avg size", cls: "num" },
     { key: "lihtc", label: "LIHTC", cls: "num" },
     { key: "exiting", label: "Exiting ≤10 yrs", cls: "num" },
+    { key: "s8", label: "Section 8", cls: "num" },
     {
       key: "stateCount", label: "States",
       fmt: (c) => (c.stateList.length <= 4
@@ -85,7 +86,10 @@
     $("rows").querySelectorAll("tr[data-i]").forEach((tr) => {
       tr.addEventListener("click", () => {
         const c = current[Number(tr.dataset.i)];
-        location.href = `index.html?mgmt=${encodeURIComponent(c.key)}`;
+        const st = $("c-state").value;
+        const scoped = st && !$("c-scope").checked;
+        location.href = `index.html?mgmt=${encodeURIComponent(c.key)}`
+          + (scoped ? `&state=${encodeURIComponent(st)}` : "");
       });
     });
 
@@ -98,21 +102,65 @@
   function refresh() {
     const q = ($("c-q").value || "").trim().toLowerCase();
     const min = parseInt($("c-min").value || "0", 10) || 0;
+    const state = $("c-state").value;
+    const nationwide = $("c-scope").checked;
+
+    // The scope switch only means something once a state is picked.
+    $("c-scope-wrap").hidden = !state;
+
+    if (!state) {
+      all = Atlas.managers();
+    } else if (nationwide) {
+      // Firms present in the state, but showing their whole footprint.
+      const present = new Set(
+        Atlas.index.filter((r) => r.state === state)
+          .map((r) => Atlas.normManager(r.management)).filter(Boolean));
+      all = Atlas.managers().filter((c) => present.has(c.key));
+    } else {
+      // Firms present in the state, counted only on what they hold there.
+      all = Atlas.managers(Atlas.index.filter((r) => r.state === state));
+    }
+
     current = all.filter((c) =>
       (!q || c.label.toLowerCase().includes(q) || c.key.toLowerCase().includes(q)) &&
       c.properties >= min);
     paintStats();
     paint();
+    paintScopeNote(state, nationwide);
+  }
+
+  function paintScopeNote(state, nationwide) {
+    const el = $("scopenote");
+    if (!state) { el.hidden = true; return; }
+    el.hidden = false;
+    el.textContent = nationwide
+      ? `Showing firms with at least one property in ${state}, counted across every state they operate in.`
+      : `Showing firms with at least one property in ${state}, counted only on their ${state} properties.`;
   }
 
   Atlas.load().then(({ meta }) => {
-    all = Atlas.managers();
+    const states = (meta && meta.states && meta.states.length)
+      ? meta.states
+      : [...new Set(Atlas.index.map((r) => r.state).filter(Boolean))].sort();
+    $("c-state").insertAdjacentHTML("beforeend",
+      states.map((s) => `<option value="${Atlas.esc(s)}">${Atlas.esc(s)}</option>`).join(""));
+
+    // Arrive with a state already chosen when the table page sends one over.
+    const wanted = new URLSearchParams(location.search).get("state");
+    if (wanted && states.includes(wanted.toUpperCase())) {
+      $("c-state").value = wanted.toUpperCase();
+    }
+
     refresh();
 
     $("c-q").addEventListener("input", refresh);
     $("c-min").addEventListener("input", refresh);
+    $("c-state").addEventListener("change", refresh);
+    $("c-scope").addEventListener("change", refresh);
     $("c-reset").addEventListener("click", () => {
-      $("c-q").value = ""; $("c-min").value = ""; refresh();
+      $("c-q").value = ""; $("c-min").value = "";
+      $("c-state").value = ""; $("c-scope").checked = false;
+      refresh();
     });
 
     $("sourcenote").innerHTML =
