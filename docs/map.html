@@ -30,7 +30,9 @@
   <div class="masthead-inner">
     <h1>USDA Section 515 Property Atlas</h1>
     <p class="sub" id="masthead-sub">Rural Rental Housing and Farm Labor Housing, from USDA Rural Development open data</p>
+    <div class="session" id="session"></div>
   </div>
+  <p class="asof" id="asof"></p>
   <nav class="tabs">
     <a href="index.html">Table</a>
     <a href="map.html" class="active">Map</a>
@@ -89,13 +91,13 @@
           <option value="n">No tax credits</option>
         </select>
       </div>
-      <div>
+      <div class="narrow">
         <label for="f-units">Min units</label>
         <input type="number" id="f-units" min="0" step="4" placeholder="0">
       </div>
-      <div class="check"><input type="checkbox" id="f-ra"><label for="f-ra" style="margin:0;text-transform:none;font-size:13px;letter-spacing:0;color:var(--ink)">Has rental assistance</label></div>
-      <div class="check"><input type="checkbox" id="f-prepay"><label for="f-prepay" style="margin:0;text-transform:none;font-size:13px;letter-spacing:0;color:var(--ink)">Prepay eligible now</label></div>
-      <div><button class="btn" id="f-reset" type="button">Reset</button></div>
+      <div class="check"><input type="checkbox" id="f-ra"><label for="f-ra">Has rental assistance</label></div>
+      <div class="check"><input type="checkbox" id="f-prepay"><label for="f-prepay">Prepay eligible now</label></div>
+      <div class="narrow"><button class="btn" id="f-reset" type="button">Reset</button></div>
     </div>
 
     <div class="stats" id="stats"></div>
