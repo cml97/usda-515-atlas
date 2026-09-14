@@ -34,69 +34,112 @@
   <p class="asof" id="asof"></p>
   <nav class="tabs">
     <a href="index.html" class="active">Table</a>
-    <a href="companies.html">Companies</a>
     <a href="map.html">Map</a>
+    <a href="companies.html">Companies</a>
   </nav>
 </header>
 <main>
     <div class="panel filters" id="filterbar">
-      <div>
-        <label for="f-q">Search</label>
-        <input type="search" id="f-q" placeholder="Property, city, management" autocomplete="off">
+      <div class="field wide">
+        <label for="f-q">Property or owner</label>
+        <input type="search" id="f-q" placeholder="Name, borrower, management" autocomplete="off">
       </div>
-      <div>
-        <label for="f-state">State</label>
-        <select id="f-state"><option value="">All states</option></select>
+
+      <div class="field">
+        <label for="f-city">City</label>
+        <input type="search" id="f-city" placeholder="City" autocomplete="off">
       </div>
-      <div>
-        <label for="f-county">County</label>
-        <select id="f-county"><option value="">All counties</option></select>
+
+      <div class="field" id="w-state">
+        <label for="i-state">State</label>
+        <div class="chipbox">
+          <span class="chips"></span>
+          <input type="text" id="i-state" placeholder="VA, Virginia" autocomplete="off"
+                 role="combobox" aria-expanded="false" aria-autocomplete="list">
+          <ul class="menu" hidden role="listbox"></ul>
+        </div>
       </div>
-      <div>
-        <label for="f-program">Program</label>
-        <select id="f-program">
-          <option value="">All programs</option>
-          <option value="0">515 Rural Rental</option>
-          <option value="1">514 Off-Farm Labor</option>
-          <option value="2">514 On-Farm Labor</option>
-        </select>
+
+      <div class="field" id="w-county">
+        <label for="i-county">County</label>
+        <div class="chipbox">
+          <span class="chips"></span>
+          <input type="text" id="i-county" placeholder="Start typing" autocomplete="off"
+                 role="combobox" aria-expanded="false" aria-autocomplete="list">
+          <ul class="menu" hidden role="listbox"></ul>
+        </div>
       </div>
-      <div>
-        <label for="f-rental">Tenant type</label>
-        <select id="f-rental">
-          <option value="">All types</option>
-          <option value="FA">Family</option>
-          <option value="EL">Elderly</option>
-          <option value="MX">Mixed</option>
-          <option value="CG">Congregate</option>
-          <option value="GH">Group Home</option>
-        </select>
+
+      <div class="field" id="w-program">
+        <label for="i-program">Program</label>
+        <div class="chipbox">
+          <span class="chips"></span>
+          <input type="text" id="i-program" placeholder="515, 514" autocomplete="off"
+                 role="combobox" aria-expanded="false" aria-autocomplete="list">
+          <ul class="menu" hidden role="listbox"></ul>
+        </div>
       </div>
-      <div>
-        <label for="f-horizon">Exiting within</label>
-        <select id="f-horizon">
-          <option value="">Any year</option>
-          <option value="3">3 years</option>
-          <option value="5">5 years</option>
-          <option value="10">10 years</option>
-          <option value="15">15 years</option>
-        </select>
+
+      <div class="field" id="w-rental">
+        <label for="i-rental">Tenant type</label>
+        <div class="chipbox">
+          <span class="chips"></span>
+          <input type="text" id="i-rental" placeholder="Family, elderly" autocomplete="off"
+                 role="combobox" aria-expanded="false" aria-autocomplete="list">
+          <ul class="menu" hidden role="listbox"></ul>
+        </div>
       </div>
-      <div>
-        <label for="f-lihtc">LIHTC</label>
-        <select id="f-lihtc">
-          <option value="">Either</option>
-          <option value="y">Has tax credits</option>
-          <option value="n">No tax credits</option>
-        </select>
+
+      <div class="field range">
+        <label>Units</label>
+        <div class="pair">
+          <input type="number" id="f-units-min" min="0" step="4" placeholder="Min" aria-label="Minimum units">
+          <span class="dash">to</span>
+          <input type="number" id="f-units-max" min="0" step="4" placeholder="Max" aria-label="Maximum units">
+        </div>
       </div>
-      <div class="narrow">
-        <label for="f-units">Min units</label>
-        <input type="number" id="f-units" min="0" step="4" placeholder="0">
+
+      <div class="field range">
+        <label>Exits within</label>
+        <div class="pair">
+          <input type="number" id="f-exit-min" min="0" step="1" placeholder="Min" aria-label="Earliest years to exit">
+          <span class="dash">to</span>
+          <input type="number" id="f-exit-max" min="0" step="1" placeholder="Max" aria-label="Latest years to exit">
+          <span class="unit">yrs</span>
+        </div>
       </div>
-      <div class="check"><input type="checkbox" id="f-ra"><label for="f-ra">Has rental assistance</label></div>
-      <div class="check"><input type="checkbox" id="f-prepay"><label for="f-prepay">Prepay eligible now</label></div>
-      <div class="narrow"><button class="btn" id="f-reset" type="button">Reset</button></div>
+
+      <div class="field seg">
+        <label>Tax credits</label>
+        <div class="segment" id="w-lihtc" role="group" aria-label="Tax credits">
+          <button type="button" data-v="">Any</button>
+          <button type="button" data-v="y">LIHTC</button>
+          <button type="button" data-v="n">None</button>
+        </div>
+      </div>
+
+      <div class="field seg">
+        <label>Rental assistance</label>
+        <div class="segment" id="w-ra" role="group" aria-label="Rental assistance">
+          <button type="button" data-v="">Any</button>
+          <button type="button" data-v="y">Has RA</button>
+          <button type="button" data-v="n">None</button>
+        </div>
+      </div>
+
+      <div class="field seg">
+        <label>Prepay eligible</label>
+        <div class="segment" id="w-prepay" role="group" aria-label="Prepay eligible now">
+          <button type="button" data-v="">Any</button>
+          <button type="button" data-v="y">Now</button>
+          <button type="button" data-v="n">Not yet</button>
+        </div>
+      </div>
+
+      <div class="field act">
+        <label>&nbsp;</label>
+        <button class="btn clearall" id="f-reset" type="button">Clear all</button>
+      </div>
     </div>
 
     <div class="chip-banner" id="mgmt-banner" hidden></div>
