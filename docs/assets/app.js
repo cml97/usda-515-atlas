@@ -78,9 +78,34 @@ const Atlas = (() => {
   let memoryToken = null;
 
   function token() {
-    if (memoryToken) return memoryToken;
+    const raw = memoryToken || readStoredToken();
+    if (!raw) return null;
+    // The payload is readable without the signing key, so an expired session
+    // can be spotted here and treated as no session at all. The Worker still
+    // does the real check; this only avoids showing a page that is about to
+    // be taken away.
+    const exp = tokenExpiry(raw);
+    if (exp !== null && exp * 1000 < Date.now()) {
+      clearToken();
+      return null;
+    }
+    return raw;
+  }
+
+  function readStoredToken() {
     try {
       return localStorage.getItem(TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  function tokenExpiry(raw) {
+    try {
+      const body = String(raw).split(".")[0];
+      const pad = body.replace(/-/g, "+").replace(/_/g, "/");
+      const json = JSON.parse(atob(pad + "===".slice((pad.length + 3) % 4)));
+      return typeof json.exp === "number" ? json.exp : null;
     } catch {
       return null;
     }
@@ -161,24 +186,33 @@ const Atlas = (() => {
   }
 
   function promptSignIn() {
+    lock();
     if (document.getElementById("signin-gate")) return;
+
     const gate = document.createElement("div");
     gate.id = "signin-gate";
-    gate.className = "drawer-backdrop";
-    gate.style.display = "flex";
-    gate.style.alignItems = "center";
-    gate.style.justifyContent = "center";
     gate.innerHTML = `
-      <div style="background:#fff;border-radius:8px;padding:26px 30px;max-width:400px;text-align:center">
-        <h2 style="margin:0 0 8px;font-size:17px">Sign in to load the data</h2>
-        <p style="margin:0 0 18px;font-size:13px;color:#66708a;line-height:1.5">
-          The property data sits behind your work account. Signing in opens a
-          Microsoft login and returns you here.
-        </p>
-        <a class="btn primary" id="signin-go" style="text-decoration:none;display:inline-block">Sign in</a>
+      <div class="signin-card">
+        <h1>USDA Section 515 Property Atlas</h1>
+        <p>Rural Rental Housing and Farm Labor Housing, built from USDA Rural
+           Development open data.</p>
+        <a class="signin-go" id="signin-go">Sign in with your work account</a>
+        <p class="signin-foot">Greysteel accounts only.</p>
       </div>`;
     document.body.appendChild(gate);
     gate.querySelector("#signin-go").href = signInUrl();
+  }
+
+  /* The gate hides the whole interface rather than sitting on top of it, so a
+     signed-out visitor sees a sign-in screen and nothing else: no filters, no
+     column headers, no counts. */
+  function lock() {
+    document.documentElement.classList.add("atlas-locked");
+  }
+
+  function unlock() {
+    document.documentElement.classList.remove("atlas-locked");
+    document.getElementById("signin-gate")?.remove();
   }
 
   function esc(value) {
@@ -239,6 +273,11 @@ const Atlas = (() => {
   }
 
   async function load() {
+    if (REMOTE && !token() && !/[#&]atlas_token=/.test(location.hash || "")) {
+      promptSignIn();
+      throw new Error("Sign-in required");
+    }
+
     const [idx, m, c] = await Promise.all([
       fetchData("index.json"),
       fetchData("meta.json"),
@@ -249,6 +288,7 @@ const Atlas = (() => {
     index = idx;
     meta = m;
     counties = c || {};
+    unlock();
     index.forEach((r) => {
       if (!r.county && r.fips && counties[r.fips]) r.county = counties[r.fips];
     });
@@ -490,6 +530,7 @@ const Atlas = (() => {
     PROGRAMS, RENTAL, STATE_NAMES,
     load, apply, summarize, readFilters, buildFilterBar,
     openDrawer, horizonClass, horizonLabel, titleCase, placeCase, num, pct, money,
+    lock, unlock,
     dataUrl, fetchData, download, esc, signInUrl, promptSignIn,
     get index() { return index; },
     get meta() { return meta; },
