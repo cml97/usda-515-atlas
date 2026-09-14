@@ -177,6 +177,56 @@ const Atlas = (() => {
     setTimeout(() => URL.revokeObjectURL(a.href), 10000);
   }
 
+  /** The email out of the session payload, for the masthead. */
+  function sessionEmail() {
+    const raw = token();
+    if (!raw) return null;
+    try {
+      const body = String(raw).split(".")[0];
+      const pad = body.replace(/-/g, "+").replace(/_/g, "/");
+      return JSON.parse(atob(pad + "===".slice((pad.length + 3) % 4))).email || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function signOut() {
+    clearToken();
+    // A plain reload is enough: the script in the page head sees no session and
+    // locks the interface before anything paints.
+    location.replace(location.pathname + location.search);
+  }
+
+  function paintSession() {
+    const box = document.getElementById("session");
+    if (!box) return;
+    if (!REMOTE) { box.innerHTML = ""; return; }
+
+    const who = sessionEmail();
+    box.innerHTML = `${who ? `<span>${esc(who)}</span>` : ""}<button type="button" id="sign-out">Sign out</button>`;
+    box.querySelector("#sign-out").addEventListener("click", signOut);
+  }
+
+  /** "2026-08-17" -> "08/17/2026" */
+  function usDate(iso) {
+    if (!iso || iso.length < 10) return null;
+    const [y, m, d] = iso.slice(0, 10).split("-");
+    return `${m}/${d}/${y}`;
+  }
+
+  function paintAsOf() {
+    const el = document.getElementById("asof");
+    if (!el || !meta) return;
+    const prop = usDate(meta.property_report_date);
+    const exit = usDate(meta.exit_report_date);
+    if (!prop && !exit) return;
+    // Both dates, because USDA publishes the two files on different cycles and
+    // quoting only the newer one would overstate how current the exit years are.
+    el.textContent = exit && exit !== prop
+      ? `Data as of ${prop} · program exit data as of ${exit}`
+      : `Data as of ${prop || exit}`;
+  }
+
   function signInUrl() {
     try {
       if (location.hash) sessionStorage.setItem(HASH_KEY, location.hash);
@@ -289,6 +339,8 @@ const Atlas = (() => {
     meta = m;
     counties = c || {};
     unlock();
+    paintSession();
+    paintAsOf();
     index.forEach((r) => {
       if (!r.county && r.fips && counties[r.fips]) r.county = counties[r.fips];
     });
@@ -530,7 +582,7 @@ const Atlas = (() => {
     PROGRAMS, RENTAL, STATE_NAMES,
     load, apply, summarize, readFilters, buildFilterBar,
     openDrawer, horizonClass, horizonLabel, titleCase, placeCase, num, pct, money,
-    lock, unlock,
+    lock, unlock, signOut, sessionEmail,
     dataUrl, fetchData, download, esc, signInUrl, promptSignIn,
     get index() { return index; },
     get meta() { return meta; },

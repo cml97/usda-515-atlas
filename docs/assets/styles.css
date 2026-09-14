@@ -54,6 +54,41 @@ header.masthead {
   margin: 0;
 }
 
+.masthead .asof {
+  max-width: 1600px;
+  margin: 5px auto 0;
+  color: #7d8fab;
+  font-size: 11.5px;
+  letter-spacing: .2px;
+}
+
+.session {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #9fb0cb;
+  white-space: nowrap;
+}
+
+.session button {
+  background: none;
+  border: 1px solid #33456a;
+  color: #cbd6e6;
+  border-radius: 5px;
+  padding: 4px 11px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.session button:hover { border-color: var(--sorbet); color: var(--sorbet); }
+
+@media (max-width: 700px) {
+  .session { margin-left: 0; width: 100%; }
+}
+
 nav.tabs {
   max-width: 1600px;
   margin: 14px auto 0;
@@ -86,11 +121,24 @@ main {
 
 .filters {
   padding: 14px 16px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  align-items: flex-end;
   margin-bottom: 14px;
+}
+
+/* Each control grows to share spare space but never shrinks below something
+   readable, and the checkboxes take only the room their label needs. */
+.filters > div {
+  flex: 1 1 150px;
+  min-width: 140px;
+}
+
+.filters > div.check,
+.filters > div.narrow {
+  flex: 0 0 auto;
+  min-width: 0;
 }
 
 .filters label {
@@ -123,7 +171,22 @@ main {
   font-size: 13px;
   padding-bottom: 7px;
   white-space: nowrap;
-  padding-right: 14px;
+}
+
+.filters .check label {
+  margin: 0;
+  text-transform: none;
+  font-size: 13px;
+  letter-spacing: 0;
+  color: var(--ink);
+  font-weight: 400;
+  cursor: pointer;
+}
+
+/* Number inputs carry a wide intrinsic size that overflows a flex item. */
+.filters input[type="number"] {
+  min-width: 0;
+  width: 90px;
 }
 
 .filters .check input { margin: 0; }
