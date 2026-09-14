@@ -478,44 +478,348 @@ const Atlas = (() => {
     return v ? normManager(v) : "";
   }
 
+  /* The management filter travels in the query string rather than in the
+     saved filter state, because it is an explicit act (clicking a firm) and
+     should not linger the way a search does. To let it survive a jump between
+     the table and the map, the nav links carry it forward. */
+  function carryParamsIntoNav(root) {
+    const params = new URLSearchParams(location.search);
+    const keep = new URLSearchParams();
+    for (const key of ["mgmt", "state"]) {
+      const value = params.get(key);
+      if (value) keep.set(key, value);
+    }
+    const query = keep.toString();
+    if (!query) return;
+    root.querySelectorAll(".tabs a").forEach((link) => {
+      const href = link.getAttribute("href");
+      if (!href || href.includes("?") || href.startsWith("http")) return;
+      // The Companies page rolls firms up and has no management filter, so
+      // handing it a mgmt parameter would say nothing.
+      if (/companies\.html/.test(href)) return;
+      link.setAttribute("href", `${href}?${query}`);
+    });
+  }
+
+  /** Says which firm the view is filtered to, and offers the other view of
+      the same set. Shared by the table and the map so a manager search can be
+      read either way round. */
+  function paintManagerBanner(root) {
+    const host = root.querySelector("#mgmt-banner");
+    if (!host) return;
+    const key = managerParam();
+    if (!key) { host.innerHTML = ""; host.hidden = true; return; }
+
+    const hit = index.find((r) => normManager(r.management) === key);
+    const label = hit ? titleCase(hit.management) : esc(key);
+    const params = new URLSearchParams(location.search);
+    const onMap = /map\.html/.test(location.pathname);
+    const other = onMap ? "index.html" : "map.html";
+    const otherLabel = onMap ? "See them in the table" : "See them on the map";
+
+    const matching = index.filter((r) => normManager(r.management) === key);
+    const units = matching.reduce((n, r) => n + (r.units || 0), 0);
+    const states = new Set(matching.map((r) => r.state).filter(Boolean));
+    const scope = params.get("state")
+      ? ` in ${esc(params.get("state").toUpperCase())}`
+      : states.size > 1 ? ` across ${states.size} states` : "";
+
+    host.hidden = false;
+    host.innerHTML =
+      `<span>Filtered to <strong>${label}</strong>${scope}:
+        ${matching.length.toLocaleString()} ${matching.length === 1 ? "property" : "properties"},
+        ${units.toLocaleString()} units</span>
+       <a href="${other}?${params.toString()}">${otherLabel}</a>
+       <a href="${onMap ? "map.html" : "index.html"}">Clear</a>`;
+  }
+
+
+  /* ------------------------------------------------------- chip multiselect
+
+     A text input that commits its matches as removable chips. Replaces the
+     single-value dropdowns, so a search can name several states, counties,
+     tenant types or programs at once.
+
+     Each field owns a `values` array. `search(term)` returns candidates,
+     and `label(value)` renders a chip. Typing filters a suggestion list;
+     Enter takes the first suggestion, Backspace on an empty box removes the
+     last chip, and Escape closes the list. */
+
+  function chipField(host, spec) {
+    const values = [];
+    const input = host.querySelector("input");
+    const chips = host.querySelector(".chips");
+    const menu = host.querySelector(".menu");
+    let active = -1;
+
+    function render() {
+      chips.innerHTML = values.map((v, i) =>
+        `<span class="chip">${esc(spec.label(v))}<button type="button" data-i="${i}"
+          aria-label="Remove ${esc(spec.label(v))}">&times;</button></span>`).join("");
+      chips.querySelectorAll("button").forEach((b) => {
+        b.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          values.splice(Number(b.dataset.i), 1);
+          render();
+          spec.onChange();
+        });
+      });
+      host.classList.toggle("has-chips", values.length > 0);
+      input.placeholder = values.length ? "" : spec.placeholder || "";
+    }
+
+    function closeMenu() {
+      menu.innerHTML = "";
+      menu.hidden = true;
+      active = -1;
+    }
+
+    function openMenu() {
+      const term = input.value.trim();
+      const hits = spec.search(term, values).slice(0, 10);
+      if (!hits.length) { closeMenu(); return; }
+      menu.hidden = false;
+      menu.innerHTML = hits.map((h, i) =>
+        `<li data-v="${esc(String(h.value))}" class="${i === active ? "on" : ""}">
+           ${esc(h.label)}${h.hint ? `<span class="hint">${esc(h.hint)}</span>` : ""}</li>`).join("");
+      menu.querySelectorAll("li").forEach((li) => {
+        li.addEventListener("mousedown", (e) => { e.preventDefault(); take(li.dataset.v); });
+      });
+    }
+
+    function take(value) {
+      if (value === undefined || value === null || value === "") return;
+      if (!values.includes(value)) values.push(value);
+      input.value = "";
+      render();
+      closeMenu();
+      spec.onChange();
+    }
+
+    input.addEventListener("input", openMenu);
+    input.addEventListener("focus", openMenu);
+    input.addEventListener("blur", () => setTimeout(closeMenu, 120));
+
+    input.addEventListener("keydown", (e) => {
+      const items = [...menu.querySelectorAll("li")];
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (!items.length) return;
+        active = e.key === "ArrowDown"
+          ? Math.min(active + 1, items.length - 1)
+          : Math.max(active - 1, 0);
+        items.forEach((li, i) => li.classList.toggle("on", i === active));
+        items[active].scrollIntoView({ block: "nearest" });
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const pick = items[active >= 0 ? active : 0];
+        if (pick) take(pick.dataset.v);
+        return;
+      }
+      if (e.key === "Escape") { closeMenu(); return; }
+      if (e.key === "Backspace" && !input.value && values.length) {
+        values.pop();
+        render();
+        spec.onChange();
+      }
+    });
+
+    render();
+
+    return {
+      get values() { return [...values]; },
+      set(list) {
+        values.length = 0;
+        (list || []).forEach((v) => { if (!values.includes(v)) values.push(v); });
+        render();
+      },
+      clear() { values.length = 0; input.value = ""; render(); closeMenu(); },
+    };
+  }
+
+  /* --------------------------------------------------- segmented selector
+
+     Three-state toggle for a yes / either / no question. Reads faster than a
+     dropdown for something with only three answers. */
+
+  function segField(host, onChange) {
+    let value = "";
+    function render() {
+      host.querySelectorAll("button").forEach((b) => {
+        const mine = b.dataset.v || "";
+        const on = mine === value;
+        // "Any" is the resting state, so it never takes the active color.
+        // Colouring it would say a filter is on when nothing is narrowing.
+        b.classList.toggle("on", on && mine !== "");
+        b.classList.toggle("neutral", on && mine === "");
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    }
+    host.querySelectorAll("button").forEach((b) => {
+      b.addEventListener("click", () => {
+        value = b.dataset.v || "";
+        render();
+        onChange();
+      });
+    });
+    render();
+    return {
+      get value() { return value; },
+      set(v) { value = v || ""; render(); },
+      clear() { value = ""; render(); },
+    };
+  }
+
+  const SHORT_PROGRAM = {
+    0: "Section 515",
+    1: "514 Off-Farm",
+    2: "514 On-Farm",
+  };
+
+  /* Which text inputs map to which saved key. */
+  const TEXT_FIELDS = [
+    ["f-q", "q"], ["f-city", "city"],
+    ["f-units-min", "minUnits"], ["f-units-max", "maxUnits"],
+    ["f-exit-min", "minExit"], ["f-exit-max", "maxExit"],
+  ];
+
+  let presentStates = new Set();
+
+  /** County lookup built once from the index: by FIPS, and grouped by state. */
+  function countyList() {
+    const byFips = new Map();
+    const byState = new Map();
+    for (const r of index) {
+      if (!r.fips || byFips.has(r.fips)) continue;
+      const short = r.county || `FIPS ${r.fips}`;
+      const entry = { fips: r.fips, short, state: r.state, name: `${short}, ${r.state}` };
+      byFips.set(r.fips, entry);
+      if (!byState.has(r.state)) byState.set(r.state, []);
+      byState.get(r.state).push(entry);
+    }
+    for (const list of byState.values()) list.sort((a, b) => a.short.localeCompare(b.short));
+    const all = [...byFips.values()].sort((a, b) => a.name.localeCompare(b.name));
+    presentStates = new Set(byState.keys());
+    return { byFips, byState, all };
+  }
+
+  /* State entry takes a code or a name, whole or partial, so "VA", "Virg"
+     and "Virginia" all resolve to the same place. */
+  function stateMatches(term) {
+    const t = norm(term);
+    const codes = Object.keys(STATE_NAMES);
+    if (!t) return codes;
+    const scored = [];
+    for (const code of codes) {
+      const name = norm(STATE_NAMES[code]);
+      let rank = null;
+      if (code.toLowerCase() === t) rank = 0;
+      else if (code.toLowerCase().startsWith(t)) rank = 1;
+      else if (name.startsWith(t)) rank = 2;
+      else if (name.includes(t)) rank = 3;
+      if (rank !== null) scored.push({ code, rank, len: STATE_NAMES[code].length });
+    }
+    // Where two states share a prefix, the shorter name is the one meant:
+    // "Virg" is Virginia, not the Virgin Islands.
+    scored.sort((a, b) => a.rank - b.rank || a.len - b.len
+                          || a.code.localeCompare(b.code));
+    return scored.map((x) => x.code);
+  }
+
+  function norm(v) {
+    return String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+  }
+
   /* ---------------------------------------------------------- filtering */
 
+  /* Live controls, keyed by page. buildFilterBar fills this in. */
+  let FIELDS = null;
+
   function readFilters(root) {
-    const get = (id) => root.querySelector("#" + id);
-    return {
-      q: (get("f-q")?.value || "").trim().toLowerCase(),
-      state: get("f-state")?.value || "",
-      county: get("f-county")?.value || "",
-      program: get("f-program")?.value || "",
-      rental: get("f-rental")?.value || "",
-      lihtc: get("f-lihtc")?.value || "",
-      horizon: get("f-horizon")?.value || "",
-      minUnits: parseInt(get("f-units")?.value || "0", 10) || 0,
-      mgmt: managerParam(),
-      raOnly: get("f-ra")?.checked || false,
-      prepay: get("f-prepay")?.checked || false,
+    const el = (id) => root.querySelector("#" + id);
+    const numOf = (id) => {
+      const v = parseInt((el(id) || {}).value || "", 10);
+      return Number.isFinite(v) ? v : null;
     };
+    return {
+      q: ((el("f-q") || {}).value || "").trim().toLowerCase(),
+      city: ((el("f-city") || {}).value || "").trim().toLowerCase(),
+      states: FIELDS ? FIELDS.state.values : [],
+      counties: FIELDS ? FIELDS.county.values : [],
+      programs: FIELDS ? FIELDS.program.values : [],
+      rentals: FIELDS ? FIELDS.rental.values : [],
+      lihtc: FIELDS ? FIELDS.lihtc.value : "",
+      ra: FIELDS ? FIELDS.ra.value : "",
+      prepay: FIELDS ? FIELDS.prepay.value : "",
+      minUnits: numOf("f-units-min"),
+      maxUnits: numOf("f-units-max"),
+      minExit: numOf("f-exit-min"),
+      maxExit: numOf("f-exit-max"),
+      mgmt: managerParam(),
+    };
+  }
+
+  /** How many filters are actually narrowing the view. Drives Clear all. */
+  function activeCount(f) {
+    let n = 0;
+    if (f.q) n += 1;
+    if (f.city) n += 1;
+    n += f.states.length ? 1 : 0;
+    n += f.counties.length ? 1 : 0;
+    n += f.programs.length ? 1 : 0;
+    n += f.rentals.length ? 1 : 0;
+    if (f.lihtc) n += 1;
+    if (f.ra) n += 1;
+    if (f.prepay) n += 1;
+    if (f.minUnits !== null || f.maxUnits !== null) n += 1;
+    if (f.minExit !== null || f.maxExit !== null) n += 1;
+    return n;
   }
 
   function apply(filters) {
     const thisYear = new Date().getFullYear();
-    const horizon = filters.horizon ? thisYear + parseInt(filters.horizon, 10) : null;
+    const f = filters;
+    const states = f.states && f.states.length ? new Set(f.states) : null;
+    const counties = f.counties && f.counties.length ? new Set(f.counties) : null;
+    const programs = f.programs && f.programs.length ? new Set(f.programs.map(String)) : null;
+    const rentals = f.rentals && f.rentals.length ? new Set(f.rentals) : null;
 
     return index.filter((r) => {
-      if (filters.state && r.state !== filters.state) return false;
-      if (filters.county && String(r.fips) !== filters.county) return false;
-      if (filters.program !== "" && String(r.program_code) !== filters.program) return false;
-      if (filters.rental && r.rental_code !== filters.rental) return false;
-      if (filters.lihtc === "y" && !r.lihtc) return false;
-      if (filters.lihtc === "n" && r.lihtc) return false;
-      if (filters.minUnits && (r.units || 0) < filters.minUnits) return false;
-      if (filters.mgmt && normManager(r.management) !== filters.mgmt) return false;
-      if (filters.raOnly && !(r.ra_units > 0)) return false;
-      if (filters.prepay && !r.prepay_eligible_now) return false;
-      if (horizon && !(r.exit_year && r.exit_year <= horizon)) return false;
-      if (filters.q) {
-        const hay = `${r.name} ${r.city} ${r.state} ${r.county || ""} ${r.management || ""}`.toLowerCase();
-        if (!hay.includes(filters.q)) return false;
+      if (states && !states.has(r.state)) return false;
+      if (counties && !counties.has(String(r.fips))) return false;
+      if (programs && !programs.has(String(r.program_code))) return false;
+      if (rentals && !rentals.has(r.rental_code)) return false;
+
+      if (f.lihtc === "y" && !r.lihtc) return false;
+      if (f.lihtc === "n" && r.lihtc) return false;
+      if (f.ra === "y" && !(r.ra_units > 0)) return false;
+      if (f.ra === "n" && r.ra_units > 0) return false;
+      if (f.prepay === "y" && !r.prepay_eligible_now) return false;
+      if (f.prepay === "n" && r.prepay_eligible_now) return false;
+
+      const units = r.units || 0;
+      if (f.minUnits !== null && f.minUnits !== undefined && units < f.minUnits) return false;
+      if (f.maxUnits !== null && f.maxUnits !== undefined && units > f.maxUnits) return false;
+
+      // Years to exit, as a window rather than a ceiling, so "5 to 15" is
+      // expressible and not just "within 10".
+      if (f.minExit !== null && f.minExit !== undefined
+          || f.maxExit !== null && f.maxExit !== undefined) {
+        if (!r.exit_year) return false;
+        const out = r.exit_year - thisYear;
+        if (f.minExit !== null && f.minExit !== undefined && out < f.minExit) return false;
+        if (f.maxExit !== null && f.maxExit !== undefined && out > f.maxExit) return false;
+      }
+
+      if (f.mgmt && normManager(r.management) !== f.mgmt) return false;
+
+      if (f.city && !String(r.city || "").toLowerCase().includes(f.city)) return false;
+
+      if (f.q) {
+        const hay = `${r.name} ${r.management || ""} ${r.county || ""}`.toLowerCase();
+        if (!hay.includes(f.q)) return false;
       }
       return true;
     });
@@ -543,60 +847,164 @@ const Atlas = (() => {
 
   /* ---------------------------------------------------------- filter bar */
 
-  function buildFilterBar(root, onChange) {
-    const states = [...new Set(index.map((r) => r.state).filter(Boolean))].sort();
-    const stateSel = root.querySelector("#f-state");
-    states.forEach((s) => {
-      const opt = document.createElement("option");
-      opt.value = s;
-      opt.textContent = `${s} - ${STATE_NAMES[s] || s}`;
-      stateSel.appendChild(opt);
-    });
+  /* Filter state is shared between the table and the map, which carry the
+     same controls. Serializing it to sessionStorage means a search survives
+     the jump from one view to the other, and survives the back button,
+     without putting a long query string in front of the reader. Session
+     rather than local, so a new tab starts clean. */
+  const FILTER_KEY = "atlas.filters";
 
-    function refreshCounties() {
-      const countySel = root.querySelector("#f-county");
-      const chosen = stateSel.value;
-      const seen = new Map();
-      index.forEach((r) => {
-        if (!r.fips) return;
-        if (chosen && r.state !== chosen) return;
-        if (!seen.has(r.fips)) seen.set(r.fips, r.county || `FIPS ${r.fips}`);
-      });
-      const sorted = [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]));
-      countySel.innerHTML = '<option value="">All counties</option>';
-      sorted.forEach(([fips, label]) => {
-        const opt = document.createElement("option");
-        opt.value = fips;
-        opt.textContent = label;
-        countySel.appendChild(opt);
-      });
-      countySel.disabled = sorted.length === 0;
-    }
-
-    // A state handed over in the URL (a link from the Companies page) should
-    // arrive already applied, not just sitting in the query string.
-    const urlState = (new URLSearchParams(location.search).get("state") || "").toUpperCase();
-    if (urlState && states.includes(urlState)) stateSel.value = urlState;
-
-    refreshCounties();
-    stateSel.addEventListener("change", () => { refreshCounties(); onChange(); });
-
-    root.querySelectorAll("select, input").forEach((el) => {
-      if (el.id === "f-state") return;
-      const evt = el.type === "search" || el.type === "text" || el.type === "number" ? "input" : "change";
-      el.addEventListener(evt, onChange);
-    });
-
-    root.querySelector("#f-reset")?.addEventListener("click", () => {
-      root.querySelectorAll("select").forEach((s) => { s.selectedIndex = 0; });
-      root.querySelectorAll('input[type="search"], input[type="number"]').forEach((i) => { i.value = ""; });
-      root.querySelectorAll('input[type="checkbox"]').forEach((i) => { i.checked = false; });
-      refreshCounties();
-      onChange();
-    });
+  function saveFilters(root) {
+    const f = readFilters(root);
+    const out = {
+      states: f.states, counties: f.counties, programs: f.programs, rentals: f.rentals,
+      lihtc: f.lihtc, ra: f.ra, prepay: f.prepay,
+      q: f.q, city: f.city,
+      minUnits: f.minUnits, maxUnits: f.maxUnits,
+      minExit: f.minExit, maxExit: f.maxExit,
+    };
+    try { sessionStorage.setItem(FILTER_KEY, JSON.stringify(out)); } catch (e) {}
   }
 
-  /* ---------------------------------------------------------- detail drawer */
+  function storedFilters() {
+    try {
+      const raw = sessionStorage.getItem(FILTER_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function clearStoredFilters() {
+    try { sessionStorage.removeItem(FILTER_KEY); } catch (e) {}
+  }
+
+  function buildFilterBar(root, onChange) {
+    const counties = countyList();
+
+    function fire() {
+      saveFilters(root);
+      paintClear();
+      onChange();
+    }
+
+    const state = chipField(root.querySelector("#w-state .chipbox"), {
+      placeholder: "VA, Virginia",
+      label: (code) => code,
+      onChange: () => { FIELDS.county.set(prunedCounties()); fire(); },
+      search: (term, chosen) => stateMatches(term)
+        .filter((c) => !chosen.includes(c) && presentStates.has(c))
+        .map((c) => ({ value: c, label: c, hint: STATE_NAMES[c] })),
+    });
+
+    const county = chipField(root.querySelector("#w-county .chipbox"), {
+      placeholder: "Start typing",
+      // The chip carries the state, since two states can hold a Richmond County.
+      label: (fips) => {
+        const c = counties.byFips.get(fips);
+        return c ? `${c.short}, ${c.state}` : fips;
+      },
+      onChange: fire,
+      search: (term, chosen) => {
+        const t = norm(term);
+        const picked = state.values;
+        // Counties narrow to the chosen states, which keeps a name like
+        // Richmond County from returning three of them.
+        let pool = picked.length
+          ? picked.flatMap((st) => counties.byState.get(st) || [])
+          : counties.all;
+        if (t) pool = pool.filter((c) => norm(c.short).startsWith(t));
+        else pool = pool.slice(0, 10);
+        return pool
+          .filter((c) => !chosen.includes(c.fips))
+          .map((c) => ({ value: c.fips, label: c.short, hint: c.state }));
+      },
+    });
+
+    const program = chipField(root.querySelector("#w-program .chipbox"), {
+      placeholder: "515, 514",
+      label: (code) => SHORT_PROGRAM[code] || PROGRAMS[code] || code,
+      onChange: fire,
+      search: (term, chosen) => {
+        const t = norm(term);
+        return Object.keys(PROGRAMS)
+          .filter((k) => !chosen.includes(k))
+          .filter((k) => !t || norm(PROGRAMS[k]).includes(t) || String(k) === t
+                          || norm(SHORT_PROGRAM[k]).includes(t))
+          .map((k) => ({ value: k, label: SHORT_PROGRAM[k], hint: PROGRAMS[k] }));
+      },
+    });
+
+    const rental = chipField(root.querySelector("#w-rental .chipbox"), {
+      placeholder: "Family, elderly",
+      label: (code) => RENTAL[code] || code,
+      onChange: fire,
+      search: (term, chosen) => {
+        const t = norm(term);
+        return Object.keys(RENTAL)
+          .filter((k) => !chosen.includes(k))
+          .filter((k) => !t || norm(RENTAL[k]).startsWith(t) || k.toLowerCase() === t)
+          .map((k) => ({ value: k, label: RENTAL[k], hint: k }));
+      },
+    });
+
+    FIELDS = {
+      state, county, program, rental,
+      lihtc: segField(root.querySelector("#w-lihtc"), fire),
+      ra: segField(root.querySelector("#w-ra"), fire),
+      prepay: segField(root.querySelector("#w-prepay"), fire),
+    };
+
+    /** Drop any chosen county that no longer sits in a chosen state. */
+    function prunedCounties() {
+      const picked = state.values;
+      if (!picked.length) return county.values;
+      const ok = new Set(picked.flatMap((st) =>
+        (counties.byState.get(st) || []).map((c) => c.fips)));
+      return county.values.filter((f) => ok.has(f));
+    }
+
+    function paintClear() {
+      const btn = root.querySelector("#f-reset");
+      if (!btn) return;
+      const n = activeCount(readFilters(root));
+      btn.classList.toggle("armed", n > 0);
+      btn.textContent = n > 0 ? `Clear all (${n})` : "Clear all";
+    }
+
+    // Restore the last search, then let an explicit link override it.
+    const saved = storedFilters();
+    if (saved) {
+      state.set((saved.states || []).filter((c) => presentStates.has(c)));
+      county.set(saved.counties || []);
+      program.set(saved.programs || []);
+      rental.set(saved.rentals || []);
+      FIELDS.lihtc.set(saved.lihtc);
+      FIELDS.ra.set(saved.ra);
+      FIELDS.prepay.set(saved.prepay);
+      for (const [id, key] of TEXT_FIELDS) {
+        const el = root.querySelector("#" + id);
+        if (el && saved[key] !== undefined && saved[key] !== null) el.value = saved[key];
+      }
+    }
+    const urlState = (new URLSearchParams(location.search).get("state") || "").toUpperCase();
+    if (urlState && presentStates.has(urlState)) {
+      state.set([urlState]);
+      county.set([]);
+    }
+
+    root.querySelectorAll('#filterbar input[type="search"], #filterbar input[type="number"]')
+      .forEach((el) => el.addEventListener("input", fire));
+
+    root.querySelector("#f-reset")?.addEventListener("click", () => {
+      Object.values(FIELDS).forEach((f) => f.clear());
+      root.querySelectorAll('#filterbar input[type="search"], #filterbar input[type="number"]')
+        .forEach((el) => { el.value = ""; });
+      clearStoredFilters();
+      paintClear();
+      onChange();
+    });
+
+    paintClear();
+  }
 
   function closeDrawer() {
     document.querySelectorAll(".drawer, .drawer-backdrop").forEach((el) => el.remove());
@@ -745,9 +1153,10 @@ const Atlas = (() => {
   return {
     PROGRAMS, RENTAL, STATE_NAMES,
     load, apply, summarize, readFilters, buildFilterBar,
-    openDrawer, horizonClass, horizonLabel, titleCase, placeCase, num, pct, money,
+    openDrawer, paintManagerBanner, carryParamsIntoNav, horizonClass, horizonLabel, titleCase, placeCase, num, pct, money,
     lock, unlock, signOut, sessionEmail,
     normManager, managers, managerParam,
+    saveFilters, storedFilters, clearStoredFilters,
     HAP_DB_URL, hapDeepLink,
     dataUrl, fetchData, download, esc, signInUrl, promptSignIn,
     get index() { return index; },

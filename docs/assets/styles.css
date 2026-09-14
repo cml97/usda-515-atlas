@@ -120,95 +120,244 @@ main {
 }
 
 .filters {
-  padding: 14px 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 18px;
-  align-items: flex-end;
-  margin-bottom: 14px;
+  padding: 13px 15px 14px;
+  display: grid;
+  /* One track size for every control, so nothing is a different width or
+     sits on a line of its own. */
+  grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+  gap: 11px 13px;
+  align-items: end;
 }
 
-/* Each control grows to share spare space but never shrinks below something
-   readable, and the checkboxes take only the room their label needs. */
-.filters > div {
-  flex: 1 1 150px;
-  min-width: 140px;
-}
-
-.filters > div.check,
-.filters > div.narrow {
-  flex: 0 0 auto;
-  min-width: 0;
-}
+.filters .field { min-width: 0; }
+.filters .field.wide { grid-column: span 2; }
 
 .filters label {
   display: block;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: .6px;
-  color: var(--muted);
+  margin: 0 0 5px;
+  font-size: 10.5px;
   font-weight: 600;
-  margin-bottom: 4px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Every control shares one box: same height, font, border and radius. */
+.filters input[type="search"],
+.filters input[type="number"],
+.filters .chipbox,
+.filters .segment,
+.filters .clearall {
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
 }
 
 .filters input[type="search"],
-.filters input[type="text"],
-.filters select {
-  width: 100%;
-  padding: 7px 9px;
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  font: inherit;
-  font-size: 13px;
-  background: #fff;
-  color: var(--ink);
+.filters input[type="number"] {
+  padding: 0 9px;
 }
 
-/* display:flex beats the hidden attribute, same trap as the chip banner. */
-.filters .check[hidden] { display: none; }
+.filters input::placeholder { color: #9aa4b8; }
 
-.filters .check {
+.filters input[type="search"]:focus,
+.filters input[type="number"]:focus,
+.filters .chipbox:focus-within {
+  outline: none;
+  border-color: var(--seafoam);
+  box-shadow: 0 0 0 2px rgba(59, 127, 131, .14);
+}
+
+/* ------------------------------------------------------------ ranges */
+
+.filters .range .pair {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 13px;
-  padding-bottom: 7px;
-  white-space: nowrap;
+  gap: 6px;
 }
 
-.filters .check label {
-  margin: 0;
-  text-transform: none;
-  font-size: 13px;
-  letter-spacing: 0;
-  color: var(--ink);
-  font-weight: 400;
-  cursor: pointer;
+.filters .range input {
+  flex: 1 1 0;
+  width: 0;
+  text-align: center;
 }
 
-/* Number inputs carry a wide intrinsic size that overflows a flex item. */
-.filters input[type="number"] {
-  min-width: 0;
-  width: 90px;
+.filters .range .dash,
+.filters .range .unit {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  color: var(--muted);
 }
 
-.filters .check input { margin: 0; }
+/* Strip the spinners: they cramp an already narrow box. */
+.filters input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.filters input[type="number"]::-webkit-outer-spin-button,
+.filters input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-button.btn {
-  border: 1px solid var(--line);
-  background: #fff;
-  color: var(--navy);
-  padding: 7px 13px;
-  border-radius: 5px;
+/* -------------------------------------------------------- chip fields */
+
+.filters .chipbox {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 5px;
+  cursor: text;
+}
+
+.filters .chipbox .chips { display: contents; }
+
+.filters .chipbox input {
+  flex: 1 1 46px;
+  min-width: 46px;
+  width: 0;
+  border: 0;
+  outline: none;
+  padding: 0 3px;
   font: inherit;
   font-size: 13px;
-  font-weight: 600;
+  background: transparent;
+  min-height: 24px;
+}
+
+.filters .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 1px 3px 1px 7px;
+  background: #eef5f5;
+  border: 1px solid #c9dedd;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--navy);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.filters .chip button {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0 3px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--seafoam);
+}
+
+.filters .chip button:hover { color: var(--near); }
+
+.filters .menu {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 4px);
+  left: -1px;
+  right: -1px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  max-height: 232px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(8, 25, 55, .11);
+}
+
+.filters .menu li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 13px;
   cursor: pointer;
 }
 
-button.btn:hover { border-color: var(--seafoam); color: var(--seafoam); }
-button.btn.primary { background: var(--seafoam); border-color: var(--seafoam); color: #fff; }
-button.btn.primary:hover { background: #336d70; color: #fff; }
+.filters .menu li.on,
+.filters .menu li:hover { background: #eef5f5; }
+.filters .menu li .hint { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+
+/* --------------------------------------------------- segmented toggles */
+
+.filters .segment {
+  display: flex;
+  padding: 2px;
+  gap: 2px;
+}
+
+.filters .segment button {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 0;
+  background: none;
+  border-radius: 4px;
+  padding: 0 4px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filters .segment button:hover { color: var(--navy); }
+
+.filters .segment button.on {
+  background: var(--seafoam);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* The resting choice gets a plain tint: visible as the current state,
+   without claiming to be a filter. */
+.filters .segment button.neutral {
+  background: #eef1f5;
+  color: var(--navy);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------ clear all */
+
+.filters .clearall {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  padding: 0 10px;
+}
+
+.filters .clearall:hover { border-color: var(--muted); color: var(--navy); }
+
+/* Armed whenever something is narrowing the view, so it is obvious that a
+   filter is on and where to switch it off. */
+.filters .clearall.armed {
+  background: #fdecea;
+  border-color: #f0b4ad;
+  color: #a6291b;
+}
+
+.filters .clearall.armed:hover { background: #fbdcd8; border-color: #e08c81; }
+
+@media (max-width: 560px) {
+  .filters { grid-template-columns: repeat(auto-fit, minmax(146px, 1fr)); }
+  .filters .field.wide { grid-column: span 2; }
+}
 
 .stats {
   display: grid;
@@ -576,3 +725,16 @@ html.atlas-locked body {
 /* Section 202/811 PRAC marked inside a Section 8 "Yes" */
 .grid td .flagmark { color: var(--sorbet); font-weight: 700; cursor: help; margin-left: 1px; }
 .drawer .warn { color: var(--sorbet); font-weight: 600; }
+
+/* Map shortcut on each Companies row */
+.grid td a.rowmap {
+  margin-left: 7px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity .12s ease, color .12s ease;
+}
+.grid tr:hover a.rowmap { opacity: 1; }
+.grid td a.rowmap:hover { color: var(--seafoam); }
+@media (hover: none) { .grid td a.rowmap { opacity: 1; } }

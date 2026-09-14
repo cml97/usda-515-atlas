@@ -45,6 +45,7 @@
   function refresh() {
     const rows = Atlas.apply(Atlas.readFilters(document));
     paintStats(rows);
+    Atlas.paintManagerBanner(document);
 
     // The stat tiles above the map change height as they fill in, which leaves
     // Leaflet holding the container width it measured at init. Without this the
@@ -72,6 +73,10 @@
       chunkedLoading: true,
       spiderfyOnMaxZoom: true,
       maxClusterRadius: 45,
+      // Past this zoom every property draws as its own pin. Without it the
+      // cluster survives to max zoom and a town's properties stay hidden
+      // behind one number until you spiderfy them.
+      disableClusteringAtZoom: 12,
     });
     map.addLayer(cluster);
 
@@ -90,6 +95,7 @@
     };
     legend.addTo(map);
 
+    Atlas.carryParamsIntoNav(document);
     Atlas.buildFilterBar(document, refresh);
     refresh();
 

@@ -2,7 +2,15 @@
 
 (() => {
   const COLUMNS = [
-    { key: "label", label: "Management company", cls: "name", fmt: (c) => Atlas.titleCase(c.label) },
+    {
+      key: "label", label: "Management company", cls: "name",
+      fmt: (c) => `${Atlas.titleCase(c.label)}<a class="rowmap" data-key="${Atlas.esc(c.key)}"`
+        + ` title="See this company's properties on the map" aria-label="Map view">`
+        + `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"`
+        + ` stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">`
+        + `<path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/>`
+        + `<circle cx="12" cy="10" r="3"/></svg></a>`,
+    },
     { key: "properties", label: "Properties", cls: "num" },
     { key: "units", label: "Units", cls: "num", fmt: (c) => Atlas.num(c.units) },
     { key: "ra", label: "RA units", cls: "num", fmt: (c) => Atlas.num(c.ra) },
@@ -83,13 +91,25 @@
         }).join("") + "</tr>").join("")
       : `<tr><td class="loading" colspan="${COLUMNS.length}">No companies match that search.</td></tr>`;
 
+    function destination(key, page) {
+      const st = $("c-state").value;
+      const scoped = st && !$("c-scope").checked;
+      return `${page}?mgmt=${encodeURIComponent(key)}`
+        + (scoped ? `&state=${encodeURIComponent(st)}` : "");
+    }
+
+    $("rows").querySelectorAll("a.rowmap").forEach((a) => {
+      a.addEventListener("click", (e) => {
+        // Stop the row's own handler, which would send them to the table.
+        e.preventDefault();
+        e.stopPropagation();
+        location.href = destination(a.dataset.key, "map.html");
+      });
+    });
+
     $("rows").querySelectorAll("tr[data-i]").forEach((tr) => {
       tr.addEventListener("click", () => {
-        const c = current[Number(tr.dataset.i)];
-        const st = $("c-state").value;
-        const scoped = st && !$("c-scope").checked;
-        location.href = `index.html?mgmt=${encodeURIComponent(c.key)}`
-          + (scoped ? `&state=${encodeURIComponent(st)}` : "");
+        location.href = destination(current[Number(tr.dataset.i)].key, "index.html");
       });
     });
 
@@ -166,7 +186,8 @@
     $("sourcenote").innerHTML =
       `Management company as recorded by USDA, grouped after folding case, punctuation and ` +
       `the trailing corporate suffix. Firms that operate under more than one name in USDA's ` +
-      `records will still appear separately. Click any row to see that company's properties.`;
+      `records will still appear separately. Click any row for that company's properties, or the ` +
+      `globe beside a name to open them on the map.`;
   }).catch((err) => {
     $("rows").innerHTML = `<tr><td class="loading" colspan="9">Could not load the data. ${Atlas.esc(err.message)}</td></tr>`;
   });
