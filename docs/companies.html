@@ -36,7 +36,6 @@
     <a href="index.html">Table</a>
     <a href="companies.html" class="active">Companies</a>
     <a href="map.html">Map</a>
-    <a href="about.html">About the data</a>
   </nav>
 </header>
 <main>
@@ -46,11 +45,21 @@
         <input type="search" id="c-q" placeholder="Company name" autocomplete="off">
       </div>
       <div class="narrow">
+        <label for="c-state">State</label>
+        <select id="c-state"><option value="">All states</option></select>
+      </div>
+      <div class="narrow">
         <label for="c-min">Min properties</label>
         <input type="number" id="c-min" min="0" step="1" placeholder="0">
       </div>
+      <div class="check" id="c-scope-wrap" hidden>
+        <input type="checkbox" id="c-scope">
+        <label for="c-scope">Nationwide totals</label>
+      </div>
       <div class="narrow"><button class="btn" id="c-reset" type="button">Reset</button></div>
     </div>
+
+    <p class="note" id="scopenote" hidden></p>
 
     <div class="stats" id="stats"></div>
 
@@ -66,6 +75,78 @@
 
     <p class="note" id="sourcenote"></p>
 </main>
+<footer class="datanote">
+  <details>
+    <summary>About this data</summary>
+    <div class="datanote-body">
+      <h3>What this is</h3>
+      <p>A searchable atlas of every active property in USDA Rural Development's multifamily
+      portfolio: Section 515 Rural Rental Housing, plus Section 514 off-farm and on-farm Farm
+      Labor Housing. Each property carries its location, unit mix, Section 521 rental assistance
+      count, tax credit status, ownership, and the year USDA projects its loan will pay off and
+      the property will leave the program.</p>
+
+      <h3>Where the data comes from</h3>
+      <p>Three sources, all public domain:</p>
+      <ul>
+        <li><strong>Property Characteristics.</strong> The active projects workbook on
+        <a href="https://www.sc.egov.usda.gov/data/MFH_section_515.html" target="_blank" rel="noopener">USDA's Section 514/515 data page</a>,
+        with the <a href="https://www.sc.egov.usda.gov/data/files/MFH_Section_515/ActiveProjects/USDA-RUR.PDF" target="_blank" rel="noopener">public data dictionary</a>.</li>
+        <li><strong>Program Exit Data.</strong> The loan maturity and payoff projections on
+        <a href="https://www.sc.egov.usda.gov/data/MFH.html" target="_blank" rel="noopener">USDA's multifamily housing data index</a>,
+        with its own <a href="https://www.sc.egov.usda.gov/data/files/MFH/USDA%20Multifamily%20Housing%20Program%20Exit%20Data_Data%20Dictionary-May%202023.pdf" target="_blank" rel="noopener">data dictionary</a>.</li>
+        <li><strong>HUD income limits.</strong> The Section 8 income limits workbook for the
+        current fiscal year, covering every county and HUD metro area.</li>
+      </ul>
+      <p>The USDA files are joined on the MFIS project key, which is the borrower number,
+      project number, and check digit combined. The join is close to complete. The handful of
+      properties without Program Exit Data show a blank exit year rather than a guess.</p>
+
+      <h3>How to read the exit year</h3>
+      <p>USDA's <em>estimated property exit year</em> is the year the agency expects the property
+      to leave the program, keyed to loan maturity. It is not the same as the
+      <em>loan payoff year</em>, which reflects prepayment status and the remaining principal
+      balance, and the two often differ. A property can also become eligible to prepay well before
+      either date, which the <em>prepay eligible</em> fields capture. All three are shown on the
+      detail panel so the timing question can be read properly rather than reduced to one number.</p>
+      <p>Nothing here is a prediction of what an owner will do. It is USDA's own projection of
+      when the regulatory clock runs out.</p>
+
+      <h3>How the Section 8 flag is built</h3>
+      <p>USDA's file carries no Section 8 indicator, so the flag comes from the PBS8 Database and
+      is matched on street address, ZIP, county, city, property name and contract size. A match is
+      only accepted when at least one strong piece of evidence lines up, and the detail panel says
+      which. A blank is usually correct rather than a gap: HUD's 515/8 contract universe includes
+      properties whose USDA loan has already paid off, and earlier phases of properties whose later
+      phase is the one still carrying a loan.</p>
+      <p>A <strong>Yes</strong> means the property carries a project-based rental assistance
+      contract. Most are conventional Section 8. A minority are Section 202 PRAC or Section 811
+      project rental assistance, and those read <strong>Yes*</strong>. The distinction matters in
+      one place: mark-up-to-market and the MAHRA renewal options are Section 8 mechanisms, so a
+      starred property has no comparability-study path and its rents move by budget-based
+      adjustment instead. Anything screening for mark-up-to-market should exclude the starred
+      rows. The detail panel names the contract family for every match.</p>
+
+      <h3>Known limits</h3>
+      <ul>
+        <li>USDA refreshes these files a few times a year, and the two carry different as-of
+        dates. Both dates are printed at the foot of the table and map pages.</li>
+        <li>Only active properties appear. Anything that has already exited is gone from the source file.</li>
+        <li>County names come from the Census county crosswalk. If that file has not been added to
+        the build, the county column falls back to the five-digit FIPS code.</li>
+        <li>Coordinates are USDA's. A small number of properties have no usable coordinates and
+        appear in the table but not on the map.</li>
+        <li>Unit counts are authorized units, which can differ from what is physically standing.</li>
+      </ul>
+
+      <h3>Reuse</h3>
+      <p>The source data is federal open data in the public domain. The full joined dataset is
+      available as <a href="data/properties.csv">CSV</a> and
+      <a href="data/properties.geojson">GeoJSON</a>.</p>
+    </div>
+  </details>
+</footer>
+
 <script src="assets/app.js"></script>
 <script src="assets/companies.js"></script>
 </body>
