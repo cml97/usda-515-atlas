@@ -223,7 +223,7 @@ const Atlas = (() => {
     // Both dates, because USDA publishes the two files on different cycles and
     // quoting only the newer one would overstate how current the exit years are.
     el.textContent = exit && exit !== prop
-      ? `Data as of ${prop} · program exit data as of ${exit}`
+      ? `Data as of ${prop} · Program Exit Data as of ${exit}`
       : `Data as of ${prop || exit}`;
   }
 

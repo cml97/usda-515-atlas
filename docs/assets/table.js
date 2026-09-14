@@ -142,8 +142,8 @@
     $("export").addEventListener("click", exportCsv);
 
     document.getElementById("sourcenote").innerHTML =
-      `Property characteristics as of ${meta.property_report_date}, program exit data as of ${meta.exit_report_date}. ` +
-      `${meta.joined_count.toLocaleString()} of ${meta.property_count.toLocaleString()} properties carry exit data. ` +
+      `Property Characteristics as of ${meta.property_report_date}, Program Exit Data as of ${meta.exit_report_date}. ` +
+      `${meta.joined_count.toLocaleString()} of ${meta.property_count.toLocaleString()} properties carry Program Exit Data. ` +
       `Built ${meta.built} from USDA Rural Development open data. ` +
       `<a href="#" id="full-csv">Download the full dataset</a>.`;
 

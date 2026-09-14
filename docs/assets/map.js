@@ -46,6 +46,11 @@
     const rows = Atlas.apply(Atlas.readFilters(document));
     paintStats(rows);
 
+    // The stat tiles above the map change height as they fill in, which leaves
+    // Leaflet holding the container width it measured at init. Without this the
+    // tile grid is laid out against the old size and slides off to one side.
+    map.invalidateSize({ animate: false });
+
     cluster.clearLayers();
     const points = rows.filter((r) => r.lat !== null && r.lon !== null);
     cluster.addLayers(points.map(marker));
@@ -88,8 +93,13 @@
     Atlas.buildFilterBar(document, refresh);
     refresh();
 
+    // Re-measure once more after the browser has finished its first paint, and
+    // again if the window changes shape.
+    requestAnimationFrame(() => map.invalidateSize({ animate: false }));
+    window.addEventListener("resize", () => map.invalidateSize({ animate: false }));
+
     document.getElementById("sourcenote").innerHTML =
-      `Property characteristics as of ${meta.property_report_date}, program exit data as of ${meta.exit_report_date}. ` +
+      `Property Characteristics as of ${meta.property_report_date}, Program Exit Data as of ${meta.exit_report_date}. ` +
       `Marker size reflects unit count. Built ${meta.built} from USDA Rural Development open data.`;
   }).catch((err) => {
     document.getElementById("map").innerHTML = `<div class="loading">Could not load the data files. ${err}</div>`;
