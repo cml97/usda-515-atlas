@@ -6,6 +6,21 @@
 <title>USDA Section 515 Property Atlas</title>
 <meta name="description" content="Searchable atlas of USDA Section 515 and 514 rural rental housing properties, built from USDA Rural Development open data.">
 <link rel="stylesheet" href="assets/styles.css">
+<script src="assets/config.js"></script>
+<script>
+// Hide the interface before first paint when the data is gated and there is no
+// session yet. Without this the table frame flashes up and is then covered.
+(function () {
+  var base = window.ATLAS_DATA_BASE || "data";
+  if (!/^https?:\/\//i.test(base)) return;
+  var stored = null;
+  try { stored = localStorage.getItem("atlas.session"); } catch (e) {}
+  if (!stored && !/[#&]atlas_token=/.test(location.hash || "")) {
+    document.documentElement.className += " atlas-locked";
+  }
+})();
+</script>
+
 </head>
 <body>
 <header class="masthead">
@@ -102,7 +117,6 @@
 
     <p class="note" id="sourcenote"></p>
 </main>
-<script src="assets/config.js"></script>
 <script src="assets/app.js"></script>
 <script src="assets/table.js"></script>
 </body>
