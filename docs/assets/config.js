@@ -10,4 +10,4 @@
  * No trailing slash. The Worker exposes the files under /data/, which the app
  * adds for you.
  */
-window.ATLAS_DATA_BASE = "data";
+window.ATLAS_DATA_BASE = "https://usda515-data.clederberg.workers.dev";
