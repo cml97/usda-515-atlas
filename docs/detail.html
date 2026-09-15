@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>USDA Section 515 Property Atlas</title>
+<title>Property - USDA Section 515 Property Atlas</title>
 <meta name="description" content="Searchable atlas of USDA Section 515 and 514 rural rental housing properties, built from USDA Rural Development open data.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="mask-icon" href="favicon.svg" color="#081937">
@@ -23,6 +23,9 @@
 })();
 </script>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css">
 </head>
 <body>
 <header class="masthead">
@@ -33,149 +36,33 @@
   </div>
   <p class="asof" id="asof"></p>
   <nav class="tabs">
-    <a href="index.html" class="active">Table</a>
+    <a href="index.html">Table</a>
     <a href="map.html">Map</a>
     <a href="companies.html">Companies</a>
   </nav>
 </header>
 <main>
-    <div class="panel filters" id="filterbar">
-      <div class="field wide">
-        <label for="f-q">Property or owner</label>
-        <input type="search" id="f-q" placeholder="Name, borrower, management" autocomplete="off">
+  <p class="backline"><a href="index.html" id="backlink">&larr; Back to the table</a></p>
+
+  <div class="panel detailhead" id="dhead">
+    <div class="loading">Loading property...</div>
+  </div>
+
+  <div class="detailgrid">
+    <div class="detailmain panel" id="dbody"></div>
+
+    <aside class="detailside">
+      <div class="panel minimap-wrap">
+        <h3 class="minimap-title">Nearby properties</h3>
+        <div id="minimap" class="minimap"></div>
+        <p class="note" id="nearnote"></p>
       </div>
-
-      <div class="field">
-        <label for="f-city">City</label>
-        <input type="search" id="f-city" placeholder="City" autocomplete="off">
+      <div class="panel nearlist-wrap">
+        <h3 class="minimap-title">Within 25 miles</h3>
+        <ol class="nearlist" id="nearlist"></ol>
       </div>
-
-      <div class="field" id="w-state">
-        <label for="i-state">State</label>
-        <div class="chipbox">
-          <span class="chips"></span>
-          <input type="text" id="i-state" placeholder="VA, Virginia" autocomplete="off"
-                 role="combobox" aria-expanded="false" aria-autocomplete="list">
-          <ul class="menu" hidden role="listbox"></ul>
-        </div>
-      </div>
-
-      <div class="field" id="w-county">
-        <label for="i-county">County</label>
-        <div class="chipbox">
-          <span class="chips"></span>
-          <input type="text" id="i-county" placeholder="Start typing" autocomplete="off"
-                 role="combobox" aria-expanded="false" aria-autocomplete="list">
-          <ul class="menu" hidden role="listbox"></ul>
-        </div>
-      </div>
-
-      <div class="field" id="w-program">
-        <label for="i-program">Program</label>
-        <div class="chipbox">
-          <span class="chips"></span>
-          <input type="text" id="i-program" placeholder="515, 514" autocomplete="off"
-                 role="combobox" aria-expanded="false" aria-autocomplete="list">
-          <ul class="menu" hidden role="listbox"></ul>
-        </div>
-      </div>
-
-      <div class="field" id="w-rental">
-        <label for="i-rental">Tenant type</label>
-        <div class="chipbox">
-          <span class="chips"></span>
-          <input type="text" id="i-rental" placeholder="Family, elderly" autocomplete="off"
-                 role="combobox" aria-expanded="false" aria-autocomplete="list">
-          <ul class="menu" hidden role="listbox"></ul>
-        </div>
-      </div>
-
-      <div class="field range">
-        <label>Units</label>
-        <div class="pair">
-          <input type="number" id="f-units-min" min="0" step="4" placeholder="Min" aria-label="Minimum units">
-          <span class="dash">to</span>
-          <input type="number" id="f-units-max" min="0" step="4" placeholder="Max" aria-label="Maximum units">
-        </div>
-      </div>
-
-      <div class="field range">
-        <label>Exits within</label>
-        <div class="pair">
-          <input type="number" id="f-exit-min" min="0" step="1" placeholder="Min" aria-label="Earliest years to exit">
-          <span class="dash">to</span>
-          <input type="number" id="f-exit-max" min="0" step="1" placeholder="Max" aria-label="Latest years to exit">
-          <span class="unit">yrs</span>
-        </div>
-      </div>
-
-      <div class="field seg">
-        <label>Tax credits</label>
-        <div class="segment" id="w-lihtc" role="group" aria-label="Tax credits">
-          <button type="button" data-v="">Any</button>
-          <button type="button" data-v="y">LIHTC</button>
-          <button type="button" data-v="n">None</button>
-        </div>
-      </div>
-
-      <div class="field seg">
-        <label>Rental assistance</label>
-        <div class="segment" id="w-ra" role="group" aria-label="Rental assistance">
-          <button type="button" data-v="">Any</button>
-          <button type="button" data-v="y">Has RA</button>
-          <button type="button" data-v="n">None</button>
-        </div>
-      </div>
-
-      <div class="field seg">
-        <label>Prepay eligible</label>
-        <div class="segment" id="w-prepay" role="group" aria-label="Prepay eligible now">
-          <button type="button" data-v="">Any</button>
-          <button type="button" data-v="y">Now</button>
-          <button type="button" data-v="n">Not yet</button>
-        </div>
-      </div>
-
-      <div class="field act">
-        <label>&nbsp;</label>
-        <button class="btn clearall" id="f-reset" type="button">Clear all</button>
-      </div>
-    </div>
-
-    <details class="panel weightbox" id="weightbox">
-      <summary>Prime Score weights</summary>
-      <div class="weightbody">
-        <div class="weights" id="weights"></div>
-        <div class="weights-actions">
-          <button class="btn" id="w-reset" type="button">Back to defaults</button>
-          <span class="note" id="w-note"></span>
-        </div>
-      </div>
-    </details>
-
-    <div class="chip-banner" id="mgmt-banner" hidden></div>
-
-    <div class="stats" id="stats"></div>
-
-    <div class="panel">
-      <div class="table-wrap">
-        <table class="grid" id="grid">
-          <thead><tr id="headrow"></tr></thead>
-          <tbody id="rows"><tr><td class="loading" colspan="12">Loading 12,000+ properties...</td></tr></tbody>
-        </table>
-      </div>
-      <div class="pager">
-        <span class="count" id="count"></span>
-        <span>
-          <button class="btn" id="prev" type="button">Previous</button>
-          <span class="count" id="pageinfo" style="margin:0 8px"></span>
-          <button class="btn" id="next" type="button">Next</button>
-        </span>
-        <button class="btn primary" id="export" type="button">Download filtered CSV</button>
-      </div>
-    </div>
-
-    <p class="note" id="sourcenote"></p>
+    </aside>
+  </div>
 </main>
 <footer class="datanote">
   <details>
@@ -248,8 +135,8 @@
     </div>
   </details>
 </footer>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script src="assets/app.js"></script>
-<script src="assets/table.js"></script>
+<script src="assets/detail.js"></script>
 </body>
 </html>
