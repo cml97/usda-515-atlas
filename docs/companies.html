@@ -40,23 +40,34 @@
 </header>
 <main>
     <div class="panel filters" id="filterbar">
-      <div>
+      <div class="field wide">
         <label for="c-q">Search companies</label>
         <input type="search" id="c-q" placeholder="Company name" autocomplete="off">
       </div>
-      <div class="narrow">
-        <label for="c-state">State</label>
-        <select id="c-state"><option value="">All states</option></select>
+      <div class="field" id="cw-state">
+        <label for="ci-state">States</label>
+        <div class="chipbox">
+          <span class="chips"></span>
+          <input type="text" id="ci-state" placeholder="VA, Virginia" autocomplete="off"
+                 role="combobox" aria-expanded="false" aria-autocomplete="list">
+          <ul class="menu" hidden role="listbox"></ul>
+        </div>
       </div>
-      <div class="narrow">
+      <div class="field range">
         <label for="c-min">Min properties</label>
-        <input type="number" id="c-min" min="0" step="1" placeholder="0">
+        <div class="pair"><input type="number" id="c-min" min="0" step="1" placeholder="Any"></div>
       </div>
-      <div class="check" id="c-scope-wrap" hidden>
-        <input type="checkbox" id="c-scope">
-        <label for="c-scope">Nationwide totals</label>
+      <div class="field seg" id="c-scope-wrap" hidden>
+        <label>Count</label>
+        <div class="segment" id="cw-scope" role="group" aria-label="Counting basis">
+          <button type="button" data-v="">Selected states</button>
+          <button type="button" data-v="all">Nationwide</button>
+        </div>
       </div>
-      <div class="narrow"><button class="btn" id="c-reset" type="button">Reset</button></div>
+      <div class="field act">
+        <label>&nbsp;</label>
+        <button class="btn clearall" id="c-reset" type="button">Clear all</button>
+      </div>
     </div>
 
     <p class="note" id="scopenote" hidden></p>
