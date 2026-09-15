@@ -31,6 +31,8 @@
   let sortDir = -1;
   let all = [];
   let current = [];
+  let stateField = null;
+  let scopeField = null;
 
   const $ = (id) => document.getElementById(id);
 
@@ -92,10 +94,10 @@
       : `<tr><td class="loading" colspan="${COLUMNS.length}">No companies match that search.</td></tr>`;
 
     function destination(key, page) {
-      const st = $("c-state").value;
-      const scoped = st && !$("c-scope").checked;
+      const picked = stateField ? stateField.values : [];
+      const scoped = picked.length && scopeField.value !== "all";
       return `${page}?mgmt=${encodeURIComponent(key)}`
-        + (scoped ? `&state=${encodeURIComponent(st)}` : "");
+        + (scoped ? `&state=${encodeURIComponent(picked.join(","))}` : "");
     }
 
     $("rows").querySelectorAll("a.rowmap").forEach((a) => {
@@ -122,23 +124,26 @@
   function refresh() {
     const q = ($("c-q").value || "").trim().toLowerCase();
     const min = parseInt($("c-min").value || "0", 10) || 0;
-    const state = $("c-state").value;
-    const nationwide = $("c-scope").checked;
+    const picked = stateField ? stateField.values : [];
+    const nationwide = scopeField ? scopeField.value === "all" : false;
 
-    // The scope switch only means something once a state is picked.
-    $("c-scope-wrap").hidden = !state;
+    // The counting basis only means something once a state is picked.
+    $("c-scope-wrap").hidden = picked.length === 0;
 
-    if (!state) {
+    if (!picked.length) {
       all = Atlas.managers();
-    } else if (nationwide) {
-      // Firms present in the state, but showing their whole footprint.
-      const present = new Set(
-        Atlas.index.filter((r) => r.state === state)
-          .map((r) => Atlas.normManager(r.management)).filter(Boolean));
-      all = Atlas.managers().filter((c) => present.has(c.key));
     } else {
-      // Firms present in the state, counted only on what they hold there.
-      all = Atlas.managers(Atlas.index.filter((r) => r.state === state));
+      const want = new Set(picked);
+      if (nationwide) {
+        // Firms present in any chosen state, showing their whole footprint.
+        const present = new Set(
+          Atlas.index.filter((r) => want.has(r.state))
+            .map((r) => Atlas.normManager(r.management)).filter(Boolean));
+        all = Atlas.managers().filter((c) => present.has(c.key));
+      } else {
+        // Counted only on what they hold in the chosen states.
+        all = Atlas.managers(Atlas.index.filter((r) => want.has(r.state)));
+      }
     }
 
     current = all.filter((c) =>
@@ -146,40 +151,56 @@
       c.properties >= min);
     paintStats();
     paint();
-    paintScopeNote(state, nationwide);
+    paintScopeNote(picked, nationwide);
+    paintClear(picked, q, min);
   }
 
-  function paintScopeNote(state, nationwide) {
+  function paintScopeNote(picked, nationwide) {
     const el = $("scopenote");
-    if (!state) { el.hidden = true; return; }
+    if (!picked.length) { el.hidden = true; return; }
+    const where = picked.length === 1 ? picked[0]
+      : picked.slice(0, -1).join(", ") + " or " + picked[picked.length - 1];
     el.hidden = false;
     el.textContent = nationwide
-      ? `Showing firms with at least one property in ${state}, counted across every state they operate in.`
-      : `Showing firms with at least one property in ${state}, counted only on their ${state} properties.`;
+      ? `Firms with at least one property in ${where}, counted across every state they operate in.`
+      : `Firms with at least one property in ${where}, counted only on their ${picked.length === 1 ? picked[0] : "properties in those states"}.`;
   }
 
-  Atlas.load().then(({ meta }) => {
-    const states = (meta && meta.states && meta.states.length)
-      ? meta.states
-      : [...new Set(Atlas.index.map((r) => r.state).filter(Boolean))].sort();
-    $("c-state").insertAdjacentHTML("beforeend",
-      states.map((s) => `<option value="${Atlas.esc(s)}">${Atlas.esc(s)}</option>`).join(""));
+  function paintClear(picked, q, min) {
+    const btn = $("c-reset");
+    if (!btn) return;
+    const n = (picked.length ? 1 : 0) + (q ? 1 : 0) + (min ? 1 : 0);
+    btn.classList.toggle("armed", n > 0);
+    btn.textContent = n > 0 ? `Clear all (${n})` : "Clear all";
+  }
 
-    // Arrive with a state already chosen when the table page sends one over.
-    const wanted = new URLSearchParams(location.search).get("state");
-    if (wanted && states.includes(wanted.toUpperCase())) {
-      $("c-state").value = wanted.toUpperCase();
-    }
+  Atlas.load().then(() => {
+    const present = new Set(Atlas.index.map((r) => r.state).filter(Boolean));
+
+    // The same chip control the table uses, so a state is entered the same way
+    // on both pages and several can be held at once.
+    stateField = Atlas.chipField(document.querySelector("#cw-state .chipbox"), {
+      placeholder: "VA, Virginia",
+      label: (code) => code,
+      onChange: refresh,
+      search: (term, chosen) => Atlas.stateMatches(term)
+        .filter((c) => !chosen.includes(c) && present.has(c))
+        .map((c) => ({ value: c, label: c, hint: Atlas.STATE_NAMES[c] })),
+    });
+
+    scopeField = Atlas.segField(document.querySelector("#cw-scope"), refresh);
+
+    // Arrive with states already chosen when another page sends them over.
+    const wanted = Atlas.statesFromUrl().filter((c) => present.has(c));
+    if (wanted.length) stateField.set(wanted);
 
     refresh();
 
     $("c-q").addEventListener("input", refresh);
     $("c-min").addEventListener("input", refresh);
-    $("c-state").addEventListener("change", refresh);
-    $("c-scope").addEventListener("change", refresh);
     $("c-reset").addEventListener("click", () => {
       $("c-q").value = ""; $("c-min").value = "";
-      $("c-state").value = ""; $("c-scope").checked = false;
+      stateField.clear(); scopeField.clear();
       refresh();
     });
 
@@ -187,7 +208,7 @@
       `Management company as recorded by USDA, grouped after folding case, punctuation and ` +
       `the trailing corporate suffix. Firms that operate under more than one name in USDA's ` +
       `records will still appear separately. Click any row for that company's properties, or the ` +
-      `globe beside a name to open them on the map.`;
+      `pin beside a name to open them on the map.`;
   }).catch((err) => {
     $("rows").innerHTML = `<tr><td class="loading" colspan="9">Could not load the data. ${Atlas.esc(err.message)}</td></tr>`;
   });

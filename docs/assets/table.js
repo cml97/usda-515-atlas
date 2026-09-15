@@ -5,7 +5,7 @@
 
   const COLUMNS = [
     {
-      key: "prime", label: "Prime", cls: "num",
+      key: "prime", label: "Prime Score", cls: "num",
       fmt: (r) => { const s = Atlas.primeScore(r); return s ? s.score.toFixed(0) : "&ndash;"; },
     },
     { key: "name", label: "Property", cls: "name", fmt: (r) => Atlas.titleCase(r.name) },

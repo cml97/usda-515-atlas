@@ -520,8 +520,9 @@ const Atlas = (() => {
     const matching = index.filter((r) => normManager(r.management) === key);
     const units = matching.reduce((n, r) => n + (r.units || 0), 0);
     const states = new Set(matching.map((r) => r.state).filter(Boolean));
-    const scope = params.get("state")
-      ? ` in ${esc(params.get("state").toUpperCase())}`
+    const scoped = statesFromUrl();
+    const scope = scoped.length
+      ? ` in ${esc(scoped.join(", "))}`
       : states.size > 1 ? ` across ${states.size} states` : "";
 
     host.hidden = false;
@@ -707,6 +708,13 @@ const Atlas = (() => {
 
   /* State entry takes a code or a name, whole or partial, so "VA", "Virg"
      and "Virginia" all resolve to the same place. */
+  /** States handed over in the URL, as a list. One link can carry several,
+      comma separated, so a multi-state view survives a click-through. */
+  function statesFromUrl() {
+    const raw = new URLSearchParams(location.search).get("state") || "";
+    return raw.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+  }
+
   function stateMatches(term) {
     const t = norm(term);
     const codes = Object.keys(STATE_NAMES);
@@ -1077,9 +1085,9 @@ const Atlas = (() => {
         if (el && saved[key] !== undefined && saved[key] !== null) el.value = saved[key];
       }
     }
-    const urlState = (new URLSearchParams(location.search).get("state") || "").toUpperCase();
-    if (urlState && presentStates.has(urlState)) {
-      state.set([urlState]);
+    const urlStates = statesFromUrl().filter((c) => presentStates.has(c));
+    if (urlStates.length) {
+      state.set(urlStates);
       county.set([]);
     }
 
@@ -1269,6 +1277,7 @@ const Atlas = (() => {
     openDrawer, openDetail, detailSections, detail, paintManagerBanner, carryParamsIntoNav, horizonClass, horizonLabel, titleCase, placeCase, num, pct, money,
     lock, unlock, signOut, sessionEmail,
     normManager, managers, managerParam,
+    chipField, segField, stateMatches, statesFromUrl,
     PRIME_FACTORS, PRIME_DEFAULTS, primeWeights, setPrimeWeights, primeScore, primeBreakdown,
     saveFilters, storedFilters, clearStoredFilters,
     HAP_DB_URL, hapDeepLink,
