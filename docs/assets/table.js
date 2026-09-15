@@ -4,6 +4,10 @@
   const PAGE_SIZE = 100;
 
   const COLUMNS = [
+    {
+      key: "prime", label: "Prime", cls: "num",
+      fmt: (r) => { const s = Atlas.primeScore(r); return s ? s.score.toFixed(0) : "&ndash;"; },
+    },
     { key: "name", label: "Property", cls: "name", fmt: (r) => Atlas.titleCase(r.name) },
     { key: "city", label: "City", fmt: (r) => Atlas.titleCase(r.city) },
     { key: "county", label: "County", fmt: (r) => Atlas.esc(r.county || r.fips || "") },
@@ -55,7 +59,8 @@
       th.addEventListener("click", () => {
         const key = th.dataset.key;
         if (sortKey === key) sortDir *= -1;
-        else { sortKey = key; sortDir = 1; }
+        // A score column is most useful best-first on the first click.
+        else { sortKey = key; sortDir = key === "prime" ? -1 : 1; }
         page = 0;
         sortAndPaint();
       });
@@ -66,6 +71,10 @@
     const blank = sortDir === 1 ? Infinity : -Infinity;
     return [...rows].sort((a, b) => {
       let x = a[sortKey], y = b[sortKey];
+      if (sortKey === "prime") {
+        const sa = Atlas.primeScore(a), sb = Atlas.primeScore(b);
+        x = sa ? sa.score : null; y = sb ? sb.score : null;
+      }
       if (typeof x === "string" || typeof y === "string") {
         x = (x || "").toString().toLowerCase();
         y = (y || "").toString().toLowerCase();
@@ -101,7 +110,7 @@
       : `<tr><td class="loading" colspan="${COLUMNS.length}">No properties match these filters.</td></tr>`;
 
     $("rows").querySelectorAll("tr[data-i]").forEach((tr) => {
-      tr.addEventListener("click", () => Atlas.openDrawer(current[Number(tr.dataset.i)]));
+      tr.addEventListener("click", () => Atlas.openDetail(current[Number(tr.dataset.i)]));
     });
 
     const pages = Math.max(1, Math.ceil(current.length / PAGE_SIZE));
@@ -115,6 +124,53 @@
     current = sortRows(current);
     renderHead();
     paintRows();
+  }
+
+  /** Weight sliders. They rescore in place, so the ranking moves as you drag. */
+  function buildWeights(onChange) {
+    const host = document.getElementById("weights");
+    if (!host) return;
+
+    function paint() {
+      const w = Atlas.primeWeights();
+      host.innerHTML = Atlas.PRIME_FACTORS.map(({ key, label }) => `
+        <div class="w">
+          <label for="w-${key}">${label}<b id="wv-${key}">${w[key]}</b></label>
+          <input type="range" id="w-${key}" data-key="${key}" min="0" max="6" step="0.5" value="${w[key]}">
+        </div>`).join("");
+
+      host.querySelectorAll('input[type="range"]').forEach((el) => {
+        el.addEventListener("input", () => {
+          const next = Atlas.primeWeights();
+          next[el.dataset.key] = parseFloat(el.value);
+          Atlas.setPrimeWeights(next);
+          document.getElementById("wv-" + el.dataset.key).textContent = el.value;
+          note();
+          onChange();
+        });
+      });
+      note();
+    }
+
+    function note() {
+      const w = Atlas.primeWeights();
+      const changed = Atlas.PRIME_FACTORS
+        .filter(({ key }) => w[key] !== Atlas.PRIME_DEFAULTS[key]).length;
+      const el = document.getElementById("w-note");
+      if (el) {
+        el.textContent = changed
+          ? `${changed} weight${changed === 1 ? "" : "s"} changed from the original model.`
+          : "Matching the original Excel model.";
+      }
+    }
+
+    document.getElementById("w-reset")?.addEventListener("click", () => {
+      Atlas.setPrimeWeights({ ...Atlas.PRIME_DEFAULTS });
+      paint();
+      onChange();
+    });
+
+    paint();
   }
 
   function refresh() {
@@ -148,6 +204,7 @@
 
   Atlas.load().then(({ meta }) => {
     Atlas.carryParamsIntoNav(document);
+    buildWeights(sortAndPaint);
     Atlas.buildFilterBar(document, refresh);
     refresh();
 

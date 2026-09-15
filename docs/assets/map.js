@@ -36,7 +36,7 @@
 
     dot.on("popupopen", (e) => {
       const link = e.popup.getElement().querySelector(".popup-detail");
-      if (link) link.addEventListener("click", (ev) => { ev.preventDefault(); Atlas.openDrawer(r); });
+      if (link) link.addEventListener("click", (ev) => { ev.preventDefault(); Atlas.openDetail(r); });
     });
 
     return dot;

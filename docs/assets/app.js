@@ -732,6 +732,98 @@ const Atlas = (() => {
     return String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
   }
 
+
+  /* ------------------------------------------------------- the Prime Score
+
+     Factors arrive from the build already ranked 0..1 against the whole
+     portfolio. Weighting happens here so the sliders move the score with no
+     rebuild. A factor with no data drops out and the remaining weights
+     renormalize, so a property is scored on what is known rather than
+     punished for a gap in USDA's file. */
+
+  const PRIME_FACTORS = [
+    { key: "size", label: "Size", hint: "Units, ranked against the portfolio" },
+    { key: "market", label: "Market", hint: "HUD area median income for the county" },
+    { key: "other_subsidy", label: "Other subsidy", hint: "LIHTC or a Section 8 contract already in place" },
+    { key: "unassisted_upside", label: "Unassisted upside", hint: "Share of units without rental assistance" },
+    { key: "section8", label: "Section 8", hint: "Share of units on a project-based contract" },
+    { key: "prepay", label: "Prepayment", hint: "How soon the loan can be prepaid, discounted for minority impact under 7 CFR 3560.658(b)" },
+  ];
+
+  const PRIME_DEFAULTS = {
+    size: 2, market: 2, other_subsidy: 1, unassisted_upside: 1, section8: 3, prepay: 4,
+  };
+
+  // How hard a high minority share discounts the prepayment component. USDA
+  // weighs minority impact when deciding prepayment, so it belongs to whether
+  // this loan can be prepaid, not to the property's general quality.
+  const MINORITY_DISCOUNT = 0.5;
+
+  const PRIME_KEY = "atlas.weights";
+
+  function primeWeights() {
+    try {
+      const raw = sessionStorage.getItem(PRIME_KEY);
+      if (raw) return { ...PRIME_DEFAULTS, ...JSON.parse(raw) };
+    } catch (e) {}
+    return { ...PRIME_DEFAULTS };
+  }
+
+  function setPrimeWeights(w) {
+    try { sessionStorage.setItem(PRIME_KEY, JSON.stringify(w)); } catch (e) {}
+  }
+
+  function primeScore(record, weights) {
+    const f = record.factors;
+    if (!f) return null;
+    const w = weights || primeWeights();
+    let used = 0, total = 0;
+    const parts = {};
+    for (const { key } of PRIME_FACTORS) {
+      let v = f[key];
+      if (v === null || v === undefined) { parts[key] = null; continue; }
+      if (key === "prepay" && f.minority !== null && f.minority !== undefined) {
+        v = v * (1 - MINORITY_DISCOUNT * f.minority);
+      }
+      parts[key] = v;
+      used += v * w[key];
+      total += w[key];
+    }
+    if (!total) return null;
+    return {
+      score: Math.round((100 * used) / total * 10) / 10,
+      parts,
+      used: Object.values(parts).filter((x) => x !== null).length,
+      possible: PRIME_FACTORS.length,
+    };
+  }
+
+  /** The breakdown, for the detail page. */
+  function primeBreakdown(record) {
+    const w = primeWeights();
+    const s = primeScore(record, w);
+    if (!s) return '<p class="note">Not enough data to score this property.</p>';
+    const rows = PRIME_FACTORS.map(({ key, label, hint }) => {
+      const v = s.parts[key];
+      const share = v === null ? 0 : (v * w[key]);
+      return `<tr>
+        <th>${esc(label)}<span class="fhint">${esc(hint)}</span></th>
+        <td class="num">${v === null ? "&ndash;" : Math.round(v * 100)}</td>
+        <td class="num">${w[key]}</td>
+        <td class="bar"><span style="width:${v === null ? 0 : Math.round(v * 100)}%"></span></td>
+      </tr>`;
+    }).join("");
+    return `
+      <div class="primehead"><b>${s.score}</b><span>out of 100, from ${s.used} of ${s.possible} factors</span></div>
+      <table class="primetable">
+        <thead><tr><th>Factor</th><th class="num">Rank</th><th class="num">Weight</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p class="note">Each factor is a percentile rank against the whole portfolio, so 80
+      means larger, or better placed, than 80% of USDA's properties. A factor with no data
+      drops out and the rest are reweighted rather than scoring it zero.</p>`;
+  }
+
   /* ---------------------------------------------------------- filtering */
 
   /* Live controls, keyed by page. buildFilterBar fills this in. */
@@ -1011,20 +1103,9 @@ const Atlas = (() => {
     document.body.classList.remove("drawer-open");
   }
 
-  async function openDrawer(record) {
-    closeDrawer();
-    const backdrop = document.createElement("div");
-    backdrop.className = "drawer-backdrop";
-    backdrop.addEventListener("click", closeDrawer);
-
-    const panel = document.createElement("aside");
-    panel.className = "drawer";
-    panel.innerHTML = '<div class="loading">Loading property detail...</div>';
-    document.body.append(backdrop, panel);
-    // The map's controls are hidden while this is open; see styles.css.
-    document.body.classList.add("drawer-open");
-
-    const d = (await detail(record)) || record;
+  /** The body of a property's detail, shared by the slide-over drawer and the
+      standalone detail page so the two can never drift apart. */
+  function detailSections(d) {
     const beds = d.beds || {};
     const mix = [1, 2, 3, 4, 5, 6]
       .filter((n) => (beds[n] || 0) > 0)
@@ -1034,12 +1115,11 @@ const Atlas = (() => {
     const cls = horizonClass(d.exit_year);
     const exitLabel = horizonLabel(d.exit_year);
 
-    panel.innerHTML = `
-      <header>
-        <button class="close" aria-label="Close">&times;</button>
-        <h2>${titleCase(d.name)}</h2>
-        <div class="where">${titleCase(d.address || "")}${d.address ? ", " : ""}${titleCase(d.city)}, ${esc(d.state)} ${esc(d.zip) || ""}</div>
-      </header>
+    return `
+      <section>
+        <h3>Prime Score</h3>
+        ${primeBreakdown(d)}
+      </section>
 
       <section>
         <h3>Program exit</h3>
@@ -1144,6 +1224,39 @@ const Atlas = (() => {
         <p class="note">Loan figures come from the single loan record USDA publishes per property in the program exit file. A property can carry more debt than one line shows.</p>
       </section>
     `;
+  }
+
+  /** Property detail is a page of its own now, so a click navigates rather
+      than sliding a panel over the view. The back link returns to wherever
+      the reader came from, and the filters are still in session storage. */
+  function openDetail(record) {
+    const from = /map\.html/.test(location.pathname) ? "&from=map" : "";
+    location.href = `detail.html?id=${encodeURIComponent(record.id)}${from}`;
+  }
+
+  async function openDrawer(record) {
+    closeDrawer();
+    const backdrop = document.createElement("div");
+    backdrop.className = "drawer-backdrop";
+    backdrop.addEventListener("click", closeDrawer);
+
+    const panel = document.createElement("aside");
+    panel.className = "drawer";
+    panel.innerHTML = '<div class="loading">Loading property detail...</div>';
+    document.body.append(backdrop, panel);
+    // The map's controls are hidden while this is open; see styles.css.
+    document.body.classList.add("drawer-open");
+
+    const d = (await detail(record)) || record;
+    panel.innerHTML = `
+      <header>
+        <button class="close" aria-label="Close">&times;</button>
+        <h2>${titleCase(d.name)}</h2>
+        <div class="where">${titleCase(d.address || "")}${d.address ? ", " : ""}${titleCase(d.city)}, ${esc(d.state)} ${esc(d.zip) || ""}</div>
+        <p class="drawer-more"><a href="detail.html?id=${encodeURIComponent(d.id)}">Open the full page</a></p>
+      </header>
+      ${detailSections(d)}
+    `;
 
     panel.querySelector(".close").addEventListener("click", closeDrawer);
   }
@@ -1153,9 +1266,10 @@ const Atlas = (() => {
   return {
     PROGRAMS, RENTAL, STATE_NAMES,
     load, apply, summarize, readFilters, buildFilterBar,
-    openDrawer, paintManagerBanner, carryParamsIntoNav, horizonClass, horizonLabel, titleCase, placeCase, num, pct, money,
+    openDrawer, openDetail, detailSections, detail, paintManagerBanner, carryParamsIntoNav, horizonClass, horizonLabel, titleCase, placeCase, num, pct, money,
     lock, unlock, signOut, sessionEmail,
     normManager, managers, managerParam,
+    PRIME_FACTORS, PRIME_DEFAULTS, primeWeights, setPrimeWeights, primeScore, primeBreakdown,
     saveFilters, storedFilters, clearStoredFilters,
     HAP_DB_URL, hapDeepLink,
     dataUrl, fetchData, download, esc, signInUrl, promptSignIn,
