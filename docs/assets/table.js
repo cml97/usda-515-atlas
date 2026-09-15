@@ -6,6 +6,10 @@
   const COLUMNS = [
     {
       key: "prime", label: "Prime Score", cls: "num",
+      /* A 0 to 100 number with nothing beside it gets misread as a grade. The
+         panel below the filters carries the full explanation; this is the
+         version for someone who never opens it. */
+      help: Atlas.PRIME_SUMMARY,
       fmt: (r) => { const s = Atlas.primeScore(r); return s ? s.score.toFixed(0) : "&ndash;"; },
     },
     { key: "name", label: "Property", cls: "name", fmt: (r) => Atlas.titleCase(r.name) },
@@ -52,7 +56,10 @@
   function renderHead() {
     $("headrow").innerHTML = COLUMNS.map((c) => {
       const arrow = sortKey === c.key ? (sortDir === 1 ? " &#9650;" : " &#9660;") : "";
-      return `<th data-key="${c.key}" class="${c.cls === "num" ? "num" : ""}">${c.label}<span class="arrow">${arrow}</span></th>`;
+      const help = c.help
+        ? `<span class="infomark" title="${Atlas.esc(c.help)}" aria-label="${Atlas.esc(c.help)}">i</span>`
+        : "";
+      return `<th data-key="${c.key}" class="${c.cls === "num" ? "num" : ""}">${c.label}${help}<span class="arrow">${arrow}</span></th>`;
     }).join("");
 
     $("headrow").querySelectorAll("th").forEach((th) => {
@@ -130,6 +137,13 @@
   function buildWeights(onChange) {
     const host = document.getElementById("weights");
     if (!host) return;
+
+    const info = document.getElementById("scoreinfo");
+    if (info) {
+      info.innerHTML = Atlas.PRIME_EXPLAINER;
+      const n = document.getElementById("prime-n");
+      if (n) n.textContent = Atlas.index.length.toLocaleString();
+    }
 
     function paint() {
       const w = Atlas.primeWeights();

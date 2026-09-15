@@ -30,6 +30,12 @@
       .slice(0, MAX_NEIGHBORS);
   }
 
+  /* The same five horizon colors the table pills and the main map use, read
+     off the stylesheet. This used to collapse past, far and not reported into
+     one color, so two properties a decade apart on the exit clock drew
+     identically. */
+  const COLORS = Atlas.horizonColors();
+
   function dot(record, subject) {
     const isSubject = record.id === subject.id;
     const cls = Atlas.horizonClass(record.exit_year);
@@ -37,7 +43,7 @@
       radius: isSubject ? 9 : 6,
       weight: isSubject ? 3 : 1.5,
       color: isSubject ? "#081937" : "#ffffff",
-      fillColor: cls === "near" ? "#c0392b" : cls === "mid" ? "#e08a2e" : "#3b7f83",
+      fillColor: COLORS[cls],
       fillOpacity: isSubject ? 1 : 0.85,
     });
 
@@ -66,9 +72,15 @@
 
     const map = L.map(host, { scrollWheelZoom: false, zoomControl: true })
       .setView([subject.lat, subject.lon], 11);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    // Esri's light gray canvas rather than standard OpenStreetMap, so the
+    // neighbors read as the subject of the picture instead of competing with
+    // the streets underneath them.
+    L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 16,
+      attribution: 'Tiles &copy; Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+    L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 16,
     }).addTo(map);
 
     const layer = L.layerGroup([subject, ...near].map((r) => dot(r, subject))).addTo(map);

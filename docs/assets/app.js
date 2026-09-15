@@ -349,6 +349,21 @@ const Atlas = (() => {
     return esc(out);
   }
 
+  /* The five horizon colors live in the stylesheet so the table pills, the
+     map markers, the cluster bubbles and the legend cannot drift apart. The
+     map needs them as values rather than class names, so it reads them back
+     off the document here. */
+  const HORIZONS = ["past", "near", "mid", "far", "none"];
+
+  function horizonColors() {
+    const style = getComputedStyle(document.documentElement);
+    const out = {};
+    HORIZONS.forEach((k) => {
+      out[k] = (style.getPropertyValue("--h-" + k) || "").trim() || "#77756e";
+    });
+    return out;
+  }
+
   function horizonClass(exitYear) {
     if (!exitYear) return "none";
     const years = exitYear - new Date().getFullYear();
@@ -758,6 +773,30 @@ const Atlas = (() => {
     { key: "prepay", label: "Prepayment", hint: "How soon the loan can be prepaid, discounted for minority impact under 7 CFR 3560.658(b)" },
   ];
 
+  /* Shown at the top of the weights panel. The short version repeats as the
+     column header tooltip, for anyone who never opens the panel. */
+  const PRIME_SUMMARY = "Prime Score ranks how attractive a property looks as an "
+    + "acquisition target, from 0 to 100. It is a relative score, not a grade: 80 "
+    + "means the property scores better than roughly 80% of USDA's portfolio, not "
+    + "that it is 80% good.";
+
+  const PRIME_EXPLAINER = `
+    <p><b>Prime Score</b> ranks how attractive a property looks as an acquisition
+    target, from 0 to 100. It is a relative score, not a grade: 80 means the
+    property scores better than roughly 80% of USDA's portfolio, not that it is
+    80% good.</p>
+    <p>Six factors go in, each one a percentile rank against all
+    <span id="prime-n">12,449</span> properties: size, the county's area median
+    income, whether another subsidy is already in place, the share of units
+    without rental assistance, the share of tenants on Section 8, and how soon
+    the loan can be prepaid. The prepayment factor is discounted where a high
+    share of minority tenants makes USDA approval of prepayment less likely,
+    which is the test in 7 CFR 3560.658(b).</p>
+    <p>The weights are yours to move, and start where the original Excel model
+    had them. Where a factor has no data it drops out and the rest are
+    reweighted, so a property is never punished for a gap in USDA's file. Every
+    property's page shows its own breakdown.</p>`;
+
   const PRIME_DEFAULTS = {
     size: 2, market: 2, other_subsidy: 1, unassisted_upside: 1, section8: 3, prepay: 4,
   };
@@ -829,7 +868,9 @@ const Atlas = (() => {
       </table>
       <p class="note">Each factor is a percentile rank against the whole portfolio, so 80
       means larger, or better placed, than 80% of USDA's properties. A factor with no data
-      drops out and the rest are reweighted rather than scoring it zero.</p>`;
+      drops out and the rest are reweighted rather than scoring it zero.</p>
+      <p class="primefoot">The score only means anything against the portfolio as it
+      stands today, so it shifts a little every time the data is refreshed.</p>`;
   }
 
   /* ---------------------------------------------------------- filtering */
@@ -851,7 +892,7 @@ const Atlas = (() => {
       programs: FIELDS ? FIELDS.program.values : [],
       rentals: FIELDS ? FIELDS.rental.values : [],
       lihtc: FIELDS ? FIELDS.lihtc.value : "",
-      ra: FIELDS ? FIELDS.ra.value : "",
+      subsidy: FIELDS ? FIELDS.subsidy.value : "",
       prepay: FIELDS ? FIELDS.prepay.value : "",
       minUnits: numOf("f-units-min"),
       maxUnits: numOf("f-units-max"),
@@ -871,7 +912,7 @@ const Atlas = (() => {
     n += f.programs.length ? 1 : 0;
     n += f.rentals.length ? 1 : 0;
     if (f.lihtc) n += 1;
-    if (f.ra) n += 1;
+    if (f.subsidy) n += 1;
     if (f.prepay) n += 1;
     if (f.minUnits !== null || f.maxUnits !== null) n += 1;
     if (f.minExit !== null || f.maxExit !== null) n += 1;
@@ -894,8 +935,17 @@ const Atlas = (() => {
 
       if (f.lihtc === "y" && !r.lihtc) return false;
       if (f.lihtc === "n" && r.lihtc) return false;
-      if (f.ra === "y" && !(r.ra_units > 0)) return false;
-      if (f.ra === "n" && r.ra_units > 0) return false;
+      /* Has Subsidy. Four of the five options are property-level contract
+         facts, so they sit alongside each other and mean the same kind of
+         thing. "Other" is Section 202/811 PRAC and PRA, which the Section 8
+         column also counts as a Yes, marked with an asterisk; the option is a
+         way into that subset rather than a contradiction of it. "None" keeps
+         the unassisted case reachable, which is what the Prime Score's
+         unassisted upside factor weights. */
+      if (f.subsidy === "ra" && !(r.ra_units > 0)) return false;
+      if (f.subsidy === "s8" && !(r.s8 && r.s8_is_hap === true)) return false;
+      if (f.subsidy === "other" && !(r.s8 && r.s8_is_hap !== true)) return false;
+      if (f.subsidy === "none" && (r.ra_units > 0 || r.s8)) return false;
       if (f.prepay === "y" && !r.prepay_eligible_now) return false;
       if (f.prepay === "n" && r.prepay_eligible_now) return false;
 
@@ -958,7 +1008,7 @@ const Atlas = (() => {
     const f = readFilters(root);
     const out = {
       states: f.states, counties: f.counties, programs: f.programs, rentals: f.rentals,
-      lihtc: f.lihtc, ra: f.ra, prepay: f.prepay,
+      lihtc: f.lihtc, subsidy: f.subsidy, prepay: f.prepay,
       q: f.q, city: f.city,
       minUnits: f.minUnits, maxUnits: f.maxUnits,
       minExit: f.minExit, maxExit: f.maxExit,
@@ -1049,7 +1099,7 @@ const Atlas = (() => {
     FIELDS = {
       state, county, program, rental,
       lihtc: segField(root.querySelector("#w-lihtc"), fire),
-      ra: segField(root.querySelector("#w-ra"), fire),
+      subsidy: segField(root.querySelector("#w-subsidy"), fire),
       prepay: segField(root.querySelector("#w-prepay"), fire),
     };
 
@@ -1078,7 +1128,13 @@ const Atlas = (() => {
       program.set(saved.programs || []);
       rental.set(saved.rentals || []);
       FIELDS.lihtc.set(saved.lihtc);
-      FIELDS.ra.set(saved.ra);
+      /* A session saved before Has Subsidy existed carries the old rental
+         assistance toggle. Carry it across rather than dropping the reader's
+         search on the floor. */
+      FIELDS.subsidy.set(saved.subsidy !== undefined ? saved.subsidy
+        : saved.ra === "y" ? "ra"
+        : saved.ra === "n" ? "none"
+        : "");
       FIELDS.prepay.set(saved.prepay);
       for (const [id, key] of TEXT_FIELDS) {
         const el = root.querySelector("#" + id);
@@ -1274,11 +1330,12 @@ const Atlas = (() => {
   return {
     PROGRAMS, RENTAL, STATE_NAMES,
     load, apply, summarize, readFilters, buildFilterBar,
-    openDrawer, openDetail, detailSections, detail, paintManagerBanner, carryParamsIntoNav, horizonClass, horizonLabel, titleCase, placeCase, num, pct, money,
+    openDrawer, openDetail, detailSections, detail, paintManagerBanner, carryParamsIntoNav, horizonClass, horizonLabel, horizonColors, HORIZONS, titleCase, placeCase, num, pct, money,
     lock, unlock, signOut, sessionEmail,
     normManager, managers, managerParam,
     chipField, segField, stateMatches, statesFromUrl,
-    PRIME_FACTORS, PRIME_DEFAULTS, primeWeights, setPrimeWeights, primeScore, primeBreakdown,
+    PRIME_FACTORS, PRIME_DEFAULTS, PRIME_SUMMARY, PRIME_EXPLAINER,
+    primeWeights, setPrimeWeights, primeScore, primeBreakdown,
     saveFilters, storedFilters, clearStoredFilters,
     HAP_DB_URL, hapDeepLink,
     dataUrl, fetchData, download, esc, signInUrl, promptSignIn,

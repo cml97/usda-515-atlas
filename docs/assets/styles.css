@@ -8,9 +8,32 @@
   --line: #dfe4ec;
   --bg: #f5f7fa;
   --card: #ffffff;
-  --near: #c0392b;
-  --mid: #e08a2e;
-  --far: #3b7f83;
+  --danger: #c0392b;
+
+  /* Program exit horizon. This is ordered data, so the three future buckets
+     are one hue getting darker as the exit gets closer, and the ramp itself
+     carries the ordering. "Projected date passed" is a state rather than a
+     rank, so it keeps a status color and always ships with a written label.
+     Validated for monotone lightness, step gaps, single hue and contrast
+     against the surface in both light and dark. */
+  --h-past: #d03b3b;
+  --h-near: #184f95;
+  --h-mid:  #256abf;
+  --h-far:  #3987e5;
+  --h-none: #77756e;
+}
+
+/* The same ramp restepped for a dark surface, which is a different set of
+   colors rather than an inversion of the light one. Nothing else in the
+   interface has a dark theme yet, so this sits inert until something sets the
+   attribute on the document. Keeping it here means the validated pairing is
+   not lost between now and then. */
+:root[data-theme="dark"] {
+  --h-past: #d03b3b;
+  --h-near: #86b6ef;
+  --h-mid:  #3987e5;
+  --h-far:  #256abf;
+  --h-none: #9b9a90;
 }
 
 * { box-sizing: border-box; }
@@ -131,6 +154,9 @@ main {
 
 .filters .field { min-width: 0; }
 .filters .field.wide { grid-column: span 2; }
+/* Five options rather than three, so it takes two tracks and the labels stay
+   readable instead of being clipped. */
+.filters .field.seg-wide { grid-column: span 2; }
 
 .filters label {
   display: block;
@@ -257,7 +283,7 @@ main {
   color: var(--seafoam);
 }
 
-.filters .chip button:hover { color: var(--near); }
+.filters .chip button:hover { color: var(--danger); }
 
 .filters .menu {
   position: absolute;
@@ -298,6 +324,8 @@ main {
   padding: 2px;
   gap: 2px;
 }
+
+.filters .segment.five button { font-size: 11.5px; padding: 0 2px; }
 
 .filters .segment button {
   flex: 1 1 0;
@@ -439,11 +467,34 @@ table.grid td.name { white-space: normal; min-width: 210px; font-weight: 600; }
   white-space: nowrap;
 }
 
-.pill.past { background: #efe6f5; color: #6b3fa0; }
-.pill.near { background: #fdecea; color: var(--near); }
-.pill.mid  { background: #fdf2e3; color: #a8641a; }
-.pill.far  { background: #eaf3f3; color: var(--far); }
-.pill.none { background: #f0f1f4; color: var(--muted); }
+/* The year is the message, so it wears an ink color at full contrast and a
+   dot beside it carries the horizon. Same five colors as the map and its
+   legend, so a row and a marker are obviously the same thing. */
+.pill.past, .pill.near, .pill.mid, .pill.far, .pill.none {
+  background: #f1f4f8;
+  color: var(--navy);
+}
+
+.pill.past::before,
+.pill.near::before,
+.pill.mid::before,
+.pill.far::before,
+.pill.none::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: 1px;
+}
+
+.pill.past::before { background: var(--h-past); }
+.pill.near::before { background: var(--h-near); }
+.pill.mid::before  { background: var(--h-mid); }
+.pill.far::before  { background: var(--h-far); }
+.pill.none::before { background: var(--h-none); }
+
 .pill.lihtc { background: #eef0f8; color: var(--navy-soft); }
 
 .pager {
@@ -540,21 +591,152 @@ table.grid td.name { white-space: normal; min-width: 210px; font-weight: 600; }
 body.drawer-open .leaflet-control-container { display: none; }
 
 .legend {
-  background: #fff;
-  padding: 9px 11px;
-  border-radius: 6px;
+  background: var(--card);
+  padding: 0;
+  border-radius: 8px;
   border: 1px solid var(--line);
+  box-shadow: 0 2px 10px rgba(8, 25, 55, .10);
   font-size: 12px;
-  line-height: 1.7;
+  line-height: 1.5;
+  min-width: 168px;
+  overflow: hidden;
+}
+
+.legend .legend-title {
+  display: block;
+  padding: 8px 12px 7px;
+  border-bottom: 1px solid var(--line);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.legend .legend-body { padding: 8px 12px 9px; }
+
+.legend .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2.5px 0;
+  color: var(--ink);
+}
+
+.legend .row .n {
+  margin-left: auto;
+  padding-left: 10px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
 }
 
 .legend i {
+  flex: 0 0 auto;
   display: inline-block;
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  margin-right: 6px;
-  vertical-align: -1px;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(8, 25, 55, .15);
+}
+
+.legend .legend-foot {
+  display: block;
+  padding: 7px 12px 8px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* Sized by units, so the legend says so rather than leaving it to the source
+   note underneath the map. */
+.legend .sizekey {
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.legend .sizekey span {
+  display: inline-block;
+  border-radius: 50%;
+  background: #c8cfdb;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(8, 25, 55, .15);
+}
+
+/* Clustered points. The bubble wears the mix of horizons inside it as a ring,
+   so zooming out summarizes the timing rather than throwing it away, and the
+   count sits on the surface color where it is legible at any step of the
+   ramp. */
+.hcluster {
+  background: none;
+  border: 0;
+}
+
+.hcluster .ring {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 5px rgba(8, 25, 55, .35);
+}
+
+.hcluster .ring::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background: var(--card);
+}
+
+.hcluster .ring span {
+  position: relative;
+  color: var(--navy);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* Basemap switch, built to look like the rest of the interface rather than
+   like a Leaflet default. */
+.basemap-switch {
+  display: flex;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  box-shadow: 0 2px 10px rgba(8, 25, 55, .10);
+  padding: 2px;
+  gap: 2px;
+}
+
+.basemap-switch button {
+  border: 0;
+  background: none;
+  border-radius: 5px;
+  padding: 5px 11px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.basemap-switch button:hover { color: var(--navy); }
+
+.basemap-switch button.on {
+  background: var(--navy);
+  color: #fff;
+  font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .legend { min-width: 0; font-size: 11.5px; }
+  .legend .legend-foot, .legend .sizekey { display: none; }
 }
 
 .loading { padding: 40px; text-align: center; color: var(--muted); }
@@ -890,3 +1072,54 @@ html.atlas-locked body {
 .weightbox summary:hover { color: var(--navy); }
 .weightbody { padding: 4px 16px 16px; border-top: 1px solid var(--line); }
 .weights-actions .note { margin: 0; }
+
+
+/* --------------------------------------------- what the Prime Score is
+
+   A number labeled 0 to 100 with nothing next to it gets either misread as a
+   grade or distrusted. The explainer sits at the top of the weights panel,
+   and the same first line is repeated as a tooltip on the column header for
+   anyone who never opens the panel. */
+
+.scoreinfo {
+  margin: 0 0 14px;
+  padding: 12px 14px 13px;
+  background: #f4f7fa;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--seafoam);
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.scoreinfo p { margin: 0 0 8px; }
+.scoreinfo p:last-child { margin-bottom: 0; }
+.scoreinfo b { color: var(--navy); }
+
+/* A dotted underline is the standing convention for "there is more here on
+   hover", and the title attribute carries it on touch through a tap as well. */
+.grid th .infomark {
+  display: inline-block;
+  margin-left: 4px;
+  width: 13px;
+  height: 13px;
+  line-height: 12px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-align: center;
+  vertical-align: 1px;
+  opacity: .65;
+  cursor: help;
+}
+
+.grid th:hover .infomark { opacity: 1; }
+
+.primefoot {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.55;
+}
