@@ -1,67 +1,34 @@
-/* Property selection: the checkbox column and the tray that holds the running
-   count. Kept in its own file alongside select.js so the selection layer can be
-   added or removed as one piece.
+/* Property selection, the presentation half of assets/select.js.
 
-   Every color here is a custom property already defined on :root in
-   styles.css, so this file follows the theme rather than setting one. */
+   select.js builds a checkbox column on the table and a tray pinned to the
+   foot of the window; index.html links this file right after styles.css and
+   reads its design tokens. Without it the tray still works, but it renders as
+   unstyled text at the very bottom of the document, below all hundred rows,
+   where nobody will scroll to find it. */
 
-/* ------------------------------------------------------ the checkbox column */
-
-table.grid th.selcell,
-table.grid td.selcell {
-  width: 34px;
-  padding-left: 12px;
-  padding-right: 4px;
-  text-align: center;
-  cursor: default;
-}
-
-/* The header cell is a click target for sorting everywhere else in the row,
-   so it has to opt out here. */
-table.grid th.selcell { cursor: default; }
-table.grid th.selcell:hover { color: #fff; }
-
-table.grid .selcell input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
-  margin: 0;
-  vertical-align: middle;
-  accent-color: var(--seafoam);
-  cursor: pointer;
-}
-
-table.grid .selcell input[type="checkbox"]:disabled { cursor: not-allowed; opacity: .4; }
-
-table.grid th.selcell input[type="checkbox"] { accent-color: var(--sorbet); }
-
-/* ------------------------------------------------------------------- tray */
+/* The tray toggles with the hidden attribute and its inner layout is flex.
+   Flex on the element itself would beat [hidden], so the flex lives on the
+   inner wrapper and the attribute keeps its say over the outer one. */
+.seltray[hidden] { display: none !important; }
 
 .seltray {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  /* Leaflet's controls sit at 1000 and the property drawer at 2000. The tray
-     belongs between them: above anything a map page would draw under it,
-     below a panel that is meant to take the whole screen. */
-  z-index: 1500;
-  background: var(--navy);
-  color: #fff;
-  border-top: 3px solid var(--sorbet);
-  box-shadow: 0 -3px 18px rgba(8, 25, 55, .22);
+  z-index: 2002;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -3px 16px rgba(8, 25, 55, .13);
+  padding: 10px 24px calc(10px + env(safe-area-inset-bottom, 0px));
 }
 
-/* display:flex below beats the hidden attribute on its own, so the attribute
-   needs saying out loud. */
-.seltray[hidden] { display: none; }
-
 .seltray-inner {
-  max-width: 1500px;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 10px 18px;
   display: flex;
   align-items: center;
-  gap: 10px 18px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
@@ -69,77 +36,77 @@ table.grid th.selcell input[type="checkbox"] { accent-color: var(--sorbet); }
   display: flex;
   align-items: baseline;
   gap: 18px;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
 }
 
 .seltray .fig {
   font-size: 12.5px;
-  color: #9fb0cb;
+  color: var(--muted);
   white-space: nowrap;
 }
 
 .seltray .fig b {
-  font-size: 18px;
-  color: #fff;
+  font-size: 17px;
+  color: var(--navy);
   font-variant-numeric: tabular-nums;
-  margin-right: 4px;
+  margin-right: 5px;
 }
 
+/* Carries whatever select.js has to say about the last action, so it takes
+   the leftover width and pushes the buttons to the right edge. */
 .seltray-note {
-  flex: 1 1 200px;
+  flex: 1 1 auto;
   min-width: 0;
   font-size: 12px;
+  color: var(--muted);
   line-height: 1.45;
-  color: #9fb0cb;
 }
-
-.seltray-note:empty { flex-basis: 0; }
 
 .seltray-acts {
   display: flex;
   gap: 8px;
+  flex: 0 0 auto;
   margin-left: auto;
 }
 
-/* Scoped to the tray on purpose. The pager's own buttons are left exactly as
-   they are. */
-.seltray .btn {
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  padding: 7px 14px;
-  border-radius: 5px;
-  border: 1px solid #40567d;
-  background: transparent;
-  color: #cfdaec;
+/* The tray sits over the page, so the foot of the table needs clearance or the
+   last row and the pager hide underneath it. select.js measures the tray and
+   writes its height into --seltray-h, which beats guessing a number here that
+   turns out wrong on a phone. */
+body.has-selection main { padding-bottom: calc(60px + var(--seltray-h, 0px)); }
+
+/* ------------------------------------------------ the checkbox column */
+
+.grid th.selcell,
+.grid td.selcell {
+  width: 34px;
+  padding-left: 14px;
+  padding-right: 0;
+  text-align: center;
+}
+
+/* The header cell holds the select-all rather than a sort key, so it drops the
+   pointer and the hover color the sortable headers carry. */
+.grid th.selcell { cursor: default; }
+.grid th.selcell:hover { color: inherit; }
+
+.grid .selcell input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  vertical-align: middle;
+  accent-color: var(--seafoam);
   cursor: pointer;
-  white-space: nowrap;
 }
 
-.seltray .btn:hover { border-color: var(--sorbet); color: var(--sorbet); }
-
-.seltray .btn.primary {
-  background: var(--sorbet);
-  border-color: var(--sorbet);
-  color: var(--navy);
-}
-
-.seltray .btn.primary:hover { background: #f5ab74; border-color: #f5ab74; color: var(--navy); }
-.seltray .btn:disabled { opacity: .55; cursor: default; }
-.seltray .btn:disabled:hover { border-color: #40567d; color: #cfdaec; }
-.seltray .btn.primary:disabled:hover { background: var(--sorbet); color: var(--navy); }
-
-/* The tray is fixed, so the foot of the page needs room to clear it. The
-   height is measured and written onto the body by select.js, because the tray
-   grows when it is carrying a note and when the buttons wrap on a phone. The
-   value here is only the fallback for the moment before the first measure. */
-body.has-selection { padding-bottom: var(--seltray-h, 74px); }
+/* A picked row reads as picked while scrolling, without the reader tracking
+   back to the checkbox column to check. */
+.grid tr:has(input.rowsel:checked) { background: #eef4f4; }
+.grid tr:has(input.rowsel:checked) td { border-bottom-color: #d8e4e4; }
 
 @media (max-width: 560px) {
-  .seltray-inner { padding: 9px 14px; gap: 8px 12px; }
-  .seltray .fig { font-size: 11.5px; }
-  .seltray .fig b { font-size: 16px; }
-  .seltray-note { flex-basis: 100%; font-size: 11.5px; }
-  .seltray-acts { margin-left: 0; width: 100%; }
-  .seltray .btn { flex: 1 1 0; padding: 8px 6px; }
+  .seltray { padding-inline: 16px; }
+  .seltray-inner { gap: 10px; }
+  .seltray-figs { gap: 12px; }
+  .seltray-note { flex-basis: 100%; order: 3; }
 }
