@@ -1248,6 +1248,29 @@ const Atlas = (() => {
       </section>
 
       <section>
+        <h3>Management fee ceiling</h3>
+        <dl class="kv">
+          <dt>Maximum fee</dt><dd>${d.mgmt_fee_max
+            ? `${money(d.mgmt_fee_max)} per occupied unit per month`
+            : "<span class=\"muted\">no published fee for this state</span>"}</dd>
+          ${d.mgmt_fee_annual_max ? `
+          <dt>Annual ceiling</dt><dd>${money(d.mgmt_fee_annual_max)}
+            <span class="muted">on ${num(d.occupied_units)} occupied of ${num(d.units)} units</span></dd>` : ""}
+          ${d.mgmt_fee_offroad ? `
+          <dt>Off-road communities</dt><dd>${money(d.mgmt_fee_offroad)}
+            <span class="muted">a separate, higher line in this state</span></dd>` : ""}
+        </dl>
+        ${d.mgmt_fee_max ? `<p class="note">USDA's ceiling on what an owner may pay a management
+        agent, from ${esc(d.mgmt_fee_source || "HB-2-3560 Attachment 3-F")}. It is a maximum and
+        not an estimate of what this property actually pays. The annual figure applies the rate to
+        occupied units, which is the basis the handbook states; occupancy here is USDA's unit count
+        less its vacant count, on the file's as-of date.
+        ${d.mgmt_fee_offroad ? `The handbook prints a second, higher fee for off-road communities
+        in this state and USDA publishes nothing that says which side of that line a property sits
+        on, so the standard rate is shown and the other is noted.` : ""}</p>` : ""}
+      </section>
+
+      <section>
         <h3>Affordability</h3>
         <dl class="kv">
           <dt>LIHTC financed</dt><dd>${d.lihtc === null ? "-" : d.lihtc ? "Yes" : "No"}</dd>

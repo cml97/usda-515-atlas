@@ -1123,3 +1123,12 @@ html.atlas-locked body {
   color: var(--muted);
   line-height: 1.55;
 }
+
+/* A qualifier sitting beside a value in a definition list: the basis a figure
+   was computed on, or the reason one is absent. Quieter than the value it
+   follows, without becoming a footnote. */
+.kv dd .muted,
+.detailmain .muted {
+  color: var(--muted);
+  font-size: 12.5px;
+}
