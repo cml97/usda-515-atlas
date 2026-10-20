@@ -23,6 +23,10 @@
 })();
 </script>
 
+<style>
+  .backline .backname { font-weight: 400; color: var(--muted, #5b6472); margin-left: 6px; }
+  .backline .backname::before { content: "\00b7"; margin-right: 6px; }
+</style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css">
@@ -39,6 +43,7 @@
     <a href="index.html">Table</a>
     <a href="map.html">Map</a>
     <a href="companies.html">Companies</a>
+    <a href="portfolios.html" id="nav-portfolios">Portfolios</a>
   </nav>
 </header>
 <main>
