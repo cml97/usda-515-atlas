@@ -500,6 +500,7 @@
         <span class="seltray-acts">
           <input type="text" id="sel-name" class="btn" autocomplete="off"
                  aria-label="Portfolio name for the export">
+          <button class="btn" id="sel-only" type="button" aria-pressed="false">Show selected only</button>
           <button class="btn" id="sel-clear" type="button">Clear all</button>
           <button class="btn primary" id="sel-export" type="button">Export selected</button>
         </span>
@@ -513,8 +514,21 @@
       ids = new Set();
       lastClickedRow = null;
       writeStored();
+      /* Clearing the selection while the view is filtered to it would empty
+         the table with no visible cause, so the filter comes off with it. */
+      Atlas.setOnlySelected(false);
       paintRowChecks();
       paintTray();
+      Atlas.refreshView();
+    });
+
+    /* The checkboxes pick a set; this is what makes the page show only that
+       set. It is a filter, so it runs through Atlas.apply with the rest and
+       the page repaints the same way a filter change repaints it. */
+    $("sel-only").addEventListener("click", () => {
+      Atlas.setOnlySelected(!Atlas.onlySelected());
+      paintTray();
+      Atlas.refreshView();
     });
     $("sel-export").addEventListener("click", exportSelected);
   }
@@ -553,6 +567,26 @@
     const show = ids.size > 0;
     tray.hidden = !show;
     document.body.classList.toggle("has-selection", show);
+
+    const only = $("sel-only");
+    if (only) {
+      /* Unchecking the last row from the table leaves nothing to filter to,
+         so the flag comes off there as well, not only on Clear all. */
+      /* Forcing it off has to redraw the page, or the table keeps showing a
+         selected-only view of a selection that no longer exists. */
+      if (!show && Atlas.onlySelected()) {
+        Atlas.setOnlySelected(false);
+        setTimeout(() => Atlas.refreshView(), 0);
+      }
+      const on = Atlas.onlySelected();
+      only.textContent = on ? "Show all properties" : "Show selected only";
+      only.setAttribute("aria-pressed", on ? "true" : "false");
+      only.classList.toggle("on", on);
+      only.title = on
+        ? "Return to every property matching the filters"
+        : "Narrow the table and the map to the properties you have checked";
+    }
+
     measureTray();
   }
 

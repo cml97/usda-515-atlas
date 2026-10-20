@@ -110,3 +110,13 @@ body.has-selection main { padding-bottom: calc(60px + var(--seltray-h, 0px)); }
   .seltray-figs { gap: 12px; }
   .seltray-note { flex-basis: 100%; order: 3; }
 }
+
+/* The selected-only toggle is a state, not an action, so it reads as pressed
+   while it is on rather than looking like a button you did not click. */
+.seltray .btn.on {
+  background: var(--navy, #081937);
+  border-color: var(--navy, #081937);
+  color: #fff;
+}
+
+.seltray .btn.on:hover { background: #0d2650; border-color: #0d2650; }
