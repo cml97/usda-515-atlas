@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolios - USDA Section 515 Property Atlas</title>
+<meta name="description" content="Saved property portfolios from the USDA Section 515 atlas.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="mask-icon" href="favicon.svg" color="#081937">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="assets/select.css">
+<script src="assets/config.js"></script>
+<script>
+// Hide the interface before first paint when the data is gated and there is no
+// session yet. Without this the frame flashes up and is then covered.
+(function () {
+  var base = window.ATLAS_DATA_BASE || "data";
+  if (!/^https?:\/\//i.test(base)) return;
+  var stored = null;
+  try { stored = localStorage.getItem("atlas.session"); } catch (e) {}
+  if (!stored && !/[#&]atlas_token=/.test(location.hash || "")) {
+    document.documentElement.className += " atlas-locked";
+  }
+})();
+</script>
+
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <h1>USDA Section 515 Property Atlas</h1>
+    <p class="sub" id="masthead-sub">Rural Rental Housing and Farm Labor Housing, from USDA Rural Development open data</p>
+    <div class="session" id="session"></div>
+  </div>
+  <p class="asof" id="asof"></p>
+  <nav class="tabs">
+    <a href="index.html">Table</a>
+    <a href="map.html">Map</a>
+    <a href="companies.html">Companies</a>
+    <a href="portfolios.html" class="active">Portfolios</a>
+  </nav>
+</header>
+<main>
+  <div class="panel pf-head">
+    <div class="pf-head-text">
+      <h2>Saved portfolios</h2>
+      <p id="pf-sub">A portfolio is a fixed list of properties you picked on the Table tab. Opening one
+      puts the atlas back on exactly those properties with the other filters cleared.</p>
+    </div>
+    <div class="pf-head-acts">
+      <a class="btn primary" href="index.html">Go to the table</a>
+    </div>
+  </div>
+
+  <div id="pf-cards"></div>
+</main>
+
+<footer class="datanote">
+  <p class="pf-foot">Portfolios are stored in this browser, on this machine. Use <b>Copy link</b> to send
+  one to a colleague or to open it on another device.</p>
+</footer>
+
+<script src="assets/app.js"></script>
+<script src="assets/portfolios.js"></script>
+</body>
+</html>
