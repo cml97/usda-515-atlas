@@ -521,3 +521,48 @@ body.has-selection main { padding-bottom: calc(60px + var(--seltray-h, 0px)); }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* The portfolio picker in the tray. It is a select rather than a menu, so the
+   platform gives us keyboard and touch behavior for free. */
+.seltray .seladd {
+  padding-right: 8px;
+  max-width: 230px;
+}
+
+.seltray .seladd[hidden] { display: none; }
+
+/* Removing a property from a portfolio. The column stays narrow and the
+   control stays quiet until the row is under the pointer. */
+#pf-grid th.dropcell, #pf-grid td.dropcell {
+  width: 30px;
+  padding-left: 0;
+  padding-right: 8px;
+  text-align: right;
+}
+
+#pf-grid .dropbtn {
+  border: 0;
+  background: none;
+  color: #b6bdc9;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 3px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .12s ease, color .12s ease;
+}
+
+#pf-grid tbody tr:hover .dropbtn { opacity: 1; }
+#pf-grid .dropbtn:hover { color: var(--danger); }
+#pf-grid .dropbtn:focus-visible { opacity: 1; outline: 2px solid var(--seafoam); }
+
+.linkish {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--seafoam);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}

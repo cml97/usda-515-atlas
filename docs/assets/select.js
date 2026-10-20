@@ -503,8 +503,10 @@
             <input type="text" id="sel-name" autocomplete="off"
                    aria-label="Portfolio name">
             <button class="btn" id="sel-save" type="button"
-                    title="Save these properties as a portfolio">Save</button>
+                    title="Save these properties as a new portfolio">Save</button>
           </span>
+          <select class="btn seladd" id="sel-add" hidden
+                  aria-label="Add the checked properties to a saved portfolio"></select>
           <span class="selgap"></span>
           <button class="btn" id="sel-only" type="button" aria-pressed="false">Show selected only</button>
           <button class="btn" id="sel-clear" type="button">Clear selection</button>
@@ -542,13 +544,34 @@
       /* The field already carries a derived default as its placeholder, so an
          untouched field still saves under a sensible name. */
       const name = ((el && el.value) || "").trim() || defaultName(rows);
+      const existed = Atlas.listPortfolios().some(
+        (p) => p.name.toLowerCase() === name.toLowerCase());
       const entry = Atlas.savePortfolio(name, [...ids]);
       if (!entry) {
         paintTray("Could not save. Browser storage is full or turned off.");
         return;
       }
       if (el) el.value = entry.name;
-      paintTray(`Saved as "${entry.name}".`);
+      paintTray(existed
+        ? `Replaced "${entry.name}" with the ${ids.size} checked.`
+        : `Saved as "${entry.name}".`);
+      const link = $("sel-saved-link");
+      if (link) link.hidden = false;
+    });
+
+    $("sel-add").addEventListener("change", () => {
+      const pick = $("sel-add").value;
+      if (!pick) return;
+      const out = Atlas.addToPortfolio(pick, [...ids]);
+      if (!out) {
+        paintTray("Could not add. Browser storage is full or turned off.");
+        return;
+      }
+      const { entry, added, already } = out;
+      paintTray(added
+        ? `Added ${added} to "${entry.name}", now ${entry.ids.length}.`
+          + (already ? ` ${already} ${already === 1 ? "was" : "were"} already in it.` : "")
+        : `Everything checked is already in "${entry.name}".`);
       const link = $("sel-saved-link");
       if (link) link.hidden = false;
     });
@@ -599,6 +622,18 @@
 
     const name = $("sel-name");
     if (name) name.placeholder = rows.length ? defaultName(rows) : "Portfolio name";
+
+    /* Saving under a name that already exists replaces it. Adding to one is a
+       different intention, so it gets its own control rather than hiding
+       inside the same button. */
+    const add = $("sel-add");
+    if (add) {
+      const list = Atlas.listPortfolios();
+      add.hidden = list.length === 0;
+      add.innerHTML = `<option value="">Add to portfolio...</option>`
+        + list.map((p) => `<option value="${Atlas.esc(p.name)}">${Atlas.esc(p.name)} (${p.ids.length})</option>`).join("");
+      add.value = "";
+    }
 
     const show = ids.size > 0;
     tray.hidden = !show;

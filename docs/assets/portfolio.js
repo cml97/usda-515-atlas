@@ -20,6 +20,7 @@
   let rows = [];
   let sortKey = "name";
   let sortDir = 1;
+  let mapObj = null;
 
   const COLUMNS = [
     { key: "name", label: "Property", cls: "name",
@@ -157,12 +158,15 @@
       const on = c.key === sortKey;
       const arrow = on ? `<span class="arrow">${sortDir === 1 ? "▲" : "▼"}</span>` : "";
       return `<th class="${c.cls || ""}" data-key="${c.key}">${c.label} ${arrow}</th>`;
-    }).join("");
+    }).join("") + (saved ? '<th class="dropcell" title="Remove from this portfolio"></th>' : "");
 
     const list = sorted();
     $("pf-rows").innerHTML = list.length
       ? list.map((r, i) => `<tr data-i="${i}">`
           + COLUMNS.map((c) => `<td class="${c.cls || ""}">${c.fmt(r)}</td>`).join("")
+          + (saved ? `<td class="dropcell"><button type="button" class="dropbtn" data-id="${Atlas.esc(String(r.id))}"
+               aria-label="Remove ${Atlas.esc(Atlas.titleCase(r.name))} from this portfolio"
+               title="Remove from this portfolio">&times;</button></td>` : "")
           + "</tr>").join("")
       : `<tr><td class="loading" colspan="${COLUMNS.length}">None of these properties are in the current USDA build.</td></tr>`;
 
@@ -177,6 +181,7 @@
     };
     $("pf-totals").innerHTML = list.length
       ? COLUMNS.map((c) => `<td class="${c.cls || ""}">${totals[c.key] || ""}</td>`).join("")
+        + (saved ? '<td class="dropcell"></td>' : "")
       : "";
 
     $("pf-headrow").querySelectorAll("th").forEach((th) => {
@@ -193,9 +198,13 @@
        event from reaching the row. */
     $("pf-rows").querySelectorAll("tr[data-i]").forEach((tr) => {
       tr.addEventListener("click", (ev) => {
-        if (ev.target.closest("a")) return;
+        if (ev.target.closest("a, button")) return;
         Atlas.openDrawer(list[Number(tr.dataset.i)]);
       });
+    });
+
+    $("pf-rows").querySelectorAll(".dropbtn").forEach((b) => {
+      b.addEventListener("click", () => drop(b.dataset.id));
     });
 
     const s2 = stats();
@@ -205,20 +214,55 @@
       : "Click any row for the full property detail. Click a column heading to sort.";
   }
 
+  /* Removing a property offers an undo rather than a confirm. The action is
+     one click and so is taking it back, which beats a dialog on every row. */
+  function drop(id) {
+    const out = Atlas.removeFromPortfolio(entry.name, [id]);
+    if (!out) return;
+    entry = out.entry;
+    const gone = rows.find((r) => String(r.id) === String(id));
+    rows = rows.filter((r) => String(r.id) !== String(id));
+    repaint();
+    $("pf-tablenote").innerHTML =
+      `Removed ${Atlas.esc(gone ? Atlas.titleCase(gone.name) : "that property")}. `
+      + `<button type="button" class="linkish" id="pf-undo">Undo</button>`;
+    $("pf-undo").addEventListener("click", () => {
+      const back = Atlas.addToPortfolio(entry.name, [id]);
+      if (!back) return;
+      entry = back.entry;
+      if (gone) rows.push(gone);
+      repaint();
+    });
+  }
+
+  function repaint() {
+    paintStats();
+    paintTable();
+    paintMap();
+    paintBreakdown();
+  }
+
   /* ----------------------------------------------------------------- the map */
 
   function paintMap() {
     const host = $("pf-map");
     const pins = rows.filter((r) => r.lat !== null && r.lat !== undefined
                                  && r.lon !== null && r.lon !== undefined);
+    /* Leaflet refuses to attach twice to the same element, and clearing the
+       HTML does not release it, so the old map is torn down properly first.
+       This matters because removing a property repaints the map. */
+    if (mapObj) { mapObj.remove(); mapObj = null; }
+
     if (!pins.length) {
       host.innerHTML = '<p class="loading">USDA publishes no coordinates for these properties.</p>';
       $("pf-mapnote").textContent = "";
       return;
     }
 
+    host.innerHTML = "";
     const map = L.map(host, { scrollWheelZoom: false, zoomControl: true })
       .setView([pins[0].lat, pins[0].lon], 9);
+    mapObj = map;
     // Esri's light gray canvas, the same base the property pages use, so the
     // properties read as the subject rather than competing with the streets.
     L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {

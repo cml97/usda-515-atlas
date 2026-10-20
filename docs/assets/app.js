@@ -1136,6 +1136,37 @@ const Atlas = (() => {
     writePortfolios(listPortfolios().filter((p) => p.name.toLowerCase() !== clean));
   }
 
+  /* Adding is its own operation rather than a second meaning for save,
+     because saving under a name that already exists replaces that portfolio
+     outright, and the two intentions sit one click apart. Neither of these
+     touches savedAt. A portfolio keeps the date it was created and carries
+     updatedAt separately, so the card cannot claim a property added today was
+     saved today. */
+  function addToPortfolio(name, ids) {
+    const list = listPortfolios();
+    const hit = list.find(
+      (p) => p.name.toLowerCase() === String(name || "").trim().toLowerCase());
+    if (!hit) return null;
+    const before = hit.ids.length;
+    hit.ids = [...new Set([...hit.ids.map(String), ...(ids || []).map(String)])];
+    hit.updatedAt = new Date().toISOString();
+    if (!writePortfolios(list)) return null;
+    return { entry: hit, added: hit.ids.length - before, already: (ids || []).length - (hit.ids.length - before) };
+  }
+
+  function removeFromPortfolio(name, ids) {
+    const list = listPortfolios();
+    const hit = list.find(
+      (p) => p.name.toLowerCase() === String(name || "").trim().toLowerCase());
+    if (!hit) return null;
+    const drop = new Set((ids || []).map(String));
+    const before = hit.ids.length;
+    hit.ids = hit.ids.filter((id) => !drop.has(String(id)));
+    hit.updatedAt = new Date().toISOString();
+    if (!writePortfolios(list)) return null;
+    return { entry: hit, removed: before - hit.ids.length };
+  }
+
   /* Renaming in place keeps the saved date and the position in the list. A
      name already in use is refused rather than quietly swallowing the other
      portfolio, which is what saving over it would do. */
@@ -1592,6 +1623,7 @@ const Atlas = (() => {
     saveFilters, storedFilters, clearStoredFilters,
     selectionIds, onlySelected, setOnlySelected, paintSelectionBanner, refreshView,
     listPortfolios, savePortfolio, removePortfolio, renamePortfolio, loadPortfolio, adoptSelection,
+    addToPortfolio, removeFromPortfolio,
     portfolioLink, portfolioFromUrl,
     clearFilters: () => clearFilters(),
     HAP_DB_URL, hapDeepLink,
