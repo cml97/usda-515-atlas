@@ -429,27 +429,42 @@
 
   /* The CSV above is the table and nothing more. This is everything the
      property pages show, for every property in the portfolio, pulled from the
-     same per-state files the detail page reads. SheetJS is loaded only when
-     someone asks for a workbook, so the page itself stays light. */
-  const XLSX_SRC = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-  let xlsxLoading = null;
+     same per-state files the detail page reads. ExcelJS is loaded only when
+     someone asks for a workbook, so the page itself stays light. It is used
+     rather than SheetJS because the free SheetJS build cannot write styling. */
+  const EXCELJS_SRC = [
+    "https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js",
+    "https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js",
+  ];
+  let excelLoading = null;
 
-  function loadXlsx() {
-    if (window.XLSX) return Promise.resolve(window.XLSX);
-    if (!xlsxLoading) {
-      xlsxLoading = new Promise((resolve, reject) => {
-        const tag = document.createElement("script");
-        tag.src = XLSX_SRC;
-        tag.onload = () => (window.XLSX ? resolve(window.XLSX) : reject(new Error("SheetJS did not load")));
-        tag.onerror = () => { xlsxLoading = null; reject(new Error("SheetJS did not load")); };
-        document.head.append(tag);
-      });
-    }
-    return xlsxLoading;
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const tag = document.createElement("script");
+      tag.src = src;
+      tag.onload = resolve;
+      tag.onerror = () => { tag.remove(); reject(new Error("could not load " + src)); };
+      document.head.append(tag);
+    });
   }
 
-  /* titleCase hands back HTML-escaped text for the page. A spreadsheet wants
-     the characters themselves. */
+  function loadExcel() {
+    if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+    if (!excelLoading) {
+      excelLoading = (async () => {
+        for (const src of EXCELJS_SRC) {
+          try {
+            await loadScript(src);
+            if (window.ExcelJS) return window.ExcelJS;
+          } catch (e) { /* try the next copy */ }
+        }
+        excelLoading = null;
+        throw new Error("The spreadsheet library did not load. Check the connection and try again.");
+      })();
+    }
+    return excelLoading;
+  }
+
   const unescape = (html) => {
     const t = document.createElement("textarea");
     t.innerHTML = html || "";
@@ -622,59 +637,395 @@
     return [...extra.values()];
   }
 
-  function summarySheet(XLSX, records) {
+  /* ------------------------------------------------------ workbook styling */
+
+  /* Greysteel's Penrose palette, so the export reads as a house document. */
+  const PEN = {
+    navy: "FF081937", seafoam: "FF3B7F83", sorbet: "FFF29651",
+    ink: "FF1E2433", muted: "FF66708A", band: "FFF4F7FA", rule: "FFDCE2EA",
+    paleSea: "FFE8F1F1", white: "FFFFFFFF",
+  };
+  const FONT = "Proxima Nova";
+  const fill = (argb) => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
+  const font = (o = {}) => ({ name: FONT, size: 10, color: { argb: PEN.ink }, ...o });
+  const hair = (argb = PEN.rule) => ({ style: "thin", color: { argb } });
+
+  /* The site's exit horizon colors, as ARGB, so an exit year in the workbook
+     carries the same color it does on the page. */
+  function horizonArgb() {
+    const css = Atlas.horizonColors();
+    const out = {};
+    Object.keys(css).forEach((k) => {
+      const hex = String(css[k] || "").replace("#", "").trim();
+      out[k] = /^[0-9a-f]{6}$/i.test(hex) ? "FF" + hex.toUpperCase() : PEN.muted;
+    });
+    return out;
+  }
+
+  /* Navy band across the top of every sheet, with a seafoam subtitle under it. */
+  function titleBand(ws, title, subtitle, width) {
+    ws.mergeCells(1, 1, 1, width);
+    const t = ws.getCell(1, 1);
+    t.value = title;
+    t.font = font({ size: 16, bold: true, color: { argb: PEN.white } });
+    t.fill = fill(PEN.navy);
+    t.alignment = { vertical: "middle", indent: 1 };
+    ws.getRow(1).height = 34;
+    for (let c = 2; c <= width; c++) ws.getCell(1, c).fill = fill(PEN.navy);
+
+    ws.mergeCells(2, 1, 2, width);
+    const s = ws.getCell(2, 1);
+    s.value = subtitle;
+    s.font = font({ size: 10, italic: true, color: { argb: PEN.seafoam } });
+    s.alignment = { vertical: "middle", indent: 1 };
+    ws.getRow(2).height = 20;
+  }
+
+  function headCell(cell, text, opts = {}) {
+    cell.value = text;
+    cell.font = font({ bold: true, color: { argb: PEN.white }, size: 9.5 });
+    cell.fill = fill(opts.argb || PEN.navy);
+    cell.alignment = { vertical: "middle", horizontal: opts.align || "left", wrapText: true,
+      indent: opts.align === "center" ? 0 : 1 };
+    cell.border = { bottom: hair(PEN.navy) };
+  }
+
+  /* One value into one cell: links become clickable, numbers keep their
+     format and sit right, Yes and No center. */
+  function putValue(cell, v, z, horizon) {
+    if (v === null || v === undefined || v === "") { cell.value = null; return; }
+    if (typeof v === "string" && /^https?:\/\//.test(v)) {
+      cell.value = { text: "Open", hyperlink: v, tooltip: v };
+      cell.font = font({ color: { argb: PEN.seafoam }, underline: true });
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      return;
+    }
+    cell.value = v;
+    if (typeof v === "number") {
+      if (z) cell.numFmt = z;
+      cell.alignment = { horizontal: "right", vertical: "middle", indent: 1 };
+    } else if (v === "Yes" || v === "No") {
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      if (v === "Yes") cell.font = font({ bold: true, color: { argb: PEN.seafoam } });
+    } else {
+      cell.alignment = { vertical: "middle", wrapText: false, indent: 1 };
+    }
+    if (horizon) cell.font = font({ bold: true, color: { argb: horizon } });
+  }
+
+  /* Fit to one page across when the sheet is narrow enough to stay
+     readable, otherwise print at a fixed scale and run onto more pages. */
+  function landscape(ws, repeatRows, fit = true) {
+    ws.pageSetup = {
+      orientation: "landscape", paperSize: 1,
+      ...(fit ? { fitToPage: true, fitToWidth: 1, fitToHeight: 0 } : { fitToPage: false, scale: 70 }),
+      margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 },
+      printTitlesRow: repeatRows,
+    };
+    ws.headerFooter = { oddFooter: `&L&8${entry.name}&R&8Page &P of &N` };
+  }
+
+  /* -------------------------------------------------------- summary sheet */
+
+  function summarySheet(wb, records) {
+    const ws = wb.addWorksheet("Summary", {
+      properties: { tabColor: { argb: PEN.navy } },
+      views: [{ showGridLines: false }],
+    });
     const s = stats();
     const w = Atlas.primeWeights();
     const meta = Atlas.meta || {};
-    const aoa = [
-      ["Portfolio", entry.name],
-      ["Exported", new Date().toLocaleString("en-US")],
+    const us = (iso) => (iso && iso.length >= 10 ? `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}` : "");
+    ws.columns = [{ width: 3 }, { width: 30 }, ...Array(5).fill(0).map(() => ({ width: 24 }))];
+    titleBand(ws, entry.name, "USDA Section 515 Property Atlas  ·  Full property export", 7);
+
+    // Who and when.
+    const info = [
+      ["Exported", new Date().toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" })],
       ["Exported by", Atlas.sessionEmail() || ""],
-      ["Property Characteristics as of", meta.property_report_date || ""],
-      ["Program Exit Data as of", meta.exit_report_date || ""],
-      [],
-      ["Properties", s.properties],
-      ["Total units", s.units],
-      ["Rental assistance units", s.ra],
-      ["RA share of units", s.raShare === null ? "" : s.raShare],
-      ["Average property size", s.avgSize],
-      ["Exiting within 10 years", s.exiting],
-      ["Saved properties no longer in the USDA build", s.missing],
-      [],
-      ["Prime Score weights used", ""],
-      ...Atlas.PRIME_FACTORS.map(({ key, label }) => [label, w[key]]),
+      ["Property Characteristics as of", us(meta.property_report_date)],
+      ["Program Exit Data as of", us(meta.exit_report_date)],
     ];
-    const tallies = [
-      ["By state", (r) => (r.state ? (Atlas.STATE_NAMES[r.state] || r.state) : "")],
-      ["By management", (r) => tc(r.management)],
-      ["By exit horizon", (r) => Atlas.horizonLabel(r.exit_year)],
-    ];
-    tallies.forEach(([title, label]) => {
-      aoa.push([], [title, "Properties", "Units"]);
-      tally(null, label).forEach(([k, v]) => aoa.push([k, v.n, v.units]));
+    let r = 4;
+    info.forEach(([k, v]) => {
+      ws.getCell(r, 2).value = k;
+      ws.getCell(r, 2).font = font({ color: { argb: PEN.muted } });
+      ws.mergeCells(r, 3, r, 4);
+      ws.getCell(r, 3).value = v;
+      ws.getCell(r, 3).font = font({ bold: true });
+      r += 1;
     });
+
+    // Six figure tiles, the same six the portfolio page shows.
+    r += 1;
+    const tiles = [
+      ["Properties", s.properties, "#,##0"],
+      ["Total units", s.units, "#,##0"],
+      ["Rental assistance units", s.ra, "#,##0"],
+      ["RA share of units", s.raShare === null ? "" : s.raShare, "0%"],
+      ["Average property size", s.avgSize, "#,##0"],
+      ["Exiting within 10 years", s.exiting, "#,##0"],
+    ];
+    tiles.forEach(([k, v, z], i) => {
+      const c = 2 + i;
+      const accent = i === 5 ? PEN.sorbet : PEN.seafoam;
+      const lab = ws.getCell(r, c);
+      lab.value = k.toUpperCase();
+      lab.font = font({ size: 8, bold: true, color: { argb: PEN.muted } });
+      lab.fill = fill(PEN.band);
+      lab.border = { top: { style: "medium", color: { argb: accent } }, left: hair(), right: hair() };
+      lab.alignment = { indent: 1, vertical: "bottom" };
+      const val = ws.getCell(r + 1, c);
+      val.value = v;
+      val.numFmt = z;
+      val.font = font({ size: 20, bold: true, color: { argb: PEN.navy } });
+      val.fill = fill(PEN.band);
+      val.border = { bottom: hair(), left: hair(), right: hair() };
+      val.alignment = { indent: 1, horizontal: "left", vertical: "middle" };
+    });
+    ws.getRow(r).height = 22;
+    ws.getRow(r + 1).height = 34;
+    r += 3;
     if (s.missing > 0) {
-      const have = new Set(records.map((r) => String(r.id)));
-      aoa.push([], ["Saved ids not in the current build"]);
-      entry.ids.filter((id) => !have.has(String(id))).forEach((id) => aoa.push([id]));
+      ws.mergeCells(r, 2, r, 7);
+      ws.getCell(r, 2).value = `${s.missing} saved ${s.missing === 1 ? "property is" : "properties are"} no longer in the current USDA build and ${s.missing === 1 ? "is" : "are"} listed at the foot of this sheet.`;
+      ws.getCell(r, 2).font = font({ italic: true, color: { argb: PEN.sorbet } });
+      r += 2;
     }
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    const ra = ws["B10"];
-    if (ra && typeof ra.v === "number") ra.z = "0%";
-    ws["!cols"] = [{ wch: 44 }, { wch: 34 }, { wch: 12 }];
+
+    // A small table: section title, navy header, banded rows, a total.
+    const table = (col, row0, title, head, rows, fmts, total) => {
+      let rr = row0;
+      const span = head.length;
+      ws.mergeCells(rr, col, rr, col + span - 1);
+      const t = ws.getCell(rr, col);
+      t.value = title;
+      t.font = font({ size: 11, bold: true, color: { argb: PEN.seafoam } });
+      t.border = { bottom: { style: "medium", color: { argb: PEN.seafoam } } };
+      for (let c = col + 1; c < col + span; c++) ws.getCell(rr, c).border = { bottom: { style: "medium", color: { argb: PEN.seafoam } } };
+      rr += 1;
+      head.forEach((h, i) => headCell(ws.getCell(rr, col + i), h, { align: i ? "right" : undefined }));
+      rr += 1;
+      rows.forEach((vals, n) => {
+        vals.forEach((v, i) => {
+          const cell = ws.getCell(rr, col + i);
+          cell.value = v;
+          cell.font = font();
+          if (fmts[i]) cell.numFmt = fmts[i];
+          cell.alignment = i ? { horizontal: "right", indent: 1 } : { indent: 1 };
+          if (n % 2) cell.fill = fill(PEN.band);
+          cell.border = { bottom: hair() };
+        });
+        rr += 1;
+      });
+      if (total) {
+        total.forEach((v, i) => {
+          const cell = ws.getCell(rr, col + i);
+          cell.value = v;
+          cell.font = font({ bold: true });
+          if (fmts[i]) cell.numFmt = fmts[i];
+          cell.alignment = i ? { horizontal: "right", indent: 1 } : { indent: 1 };
+          cell.border = { top: { style: "thin", color: { argb: PEN.navy } } };
+        });
+        rr += 1;
+      }
+      return rr;
+    };
+
+    const tallyRows = (label) => tally(null, label).map(([k, v]) => [k, v.n, v.units]);
+    const tot = ["Total", s.properties, s.units];
+    const f3 = [null, "#,##0", "#,##0"];
+
+    // Two columns of tables, so the sheet fits on a landscape page.
+    let left = table(2, r, "By state", ["State", "Properties", "Units"],
+      tallyRows((x) => (x.state ? (Atlas.STATE_NAMES[x.state] || x.state) : "")), f3, tot);
+    let right = table(5, r, "By exit horizon", ["Exit year", "Properties", "Units"],
+      tallyRows((x) => Atlas.horizonLabel(x.exit_year)), f3, tot);
+    left = table(2, left + 1, "By management", ["Management agent", "Properties", "Units"],
+      tallyRows((x) => tc(x.management) || "Not stated"), f3, tot);
+    right = table(5, right + 1, "Prime Score weights used", ["Factor", "", "Weight"],
+      Atlas.PRIME_FACTORS.map(({ key, label }) => [label, "", w[key]]), [null, null, "0"], null);
+    let foot = Math.max(left, right) + 1;
+
+    ws.mergeCells(foot, 2, foot, 7);
+    const note = ws.getCell(foot, 2);
+    note.value = "Prime Score ranks each property against USDA's whole portfolio, so it shifts a little "
+      + "with every data refresh. The Properties sheet carries every field in one row per property. "
+      + "Property Detail shows the same fields down the side, one column per property.";
+    note.font = font({ size: 9, italic: true, color: { argb: PEN.muted } });
+    note.alignment = { wrapText: true, vertical: "top" };
+    ws.getRow(foot).height = 40;
+
+    if (s.missing > 0) {
+      const have = new Set(records.map((x) => String(x.id)));
+      foot += 2;
+      foot = table(2, foot, "Saved ids not in the current build", ["MFIS project key"],
+        entry.ids.filter((id) => !have.has(String(id))).map((id) => [id]), [null], null);
+    }
+    landscape(ws, null);
     return ws;
   }
 
-  function setFormats(ws, fmtFor) {
-    const range = XLSX.utils.decode_range(ws["!ref"]);
-    for (let R = range.s.r; R <= range.e.r; R++) {
-      for (let C = range.s.c; C <= range.e.c; C++) {
-        const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
-        if (!cell || cell.t !== "n") continue;
-        const z = fmtFor(R, C);
-        if (z) cell.z = z;
+  /* ----------------------------------------------------- properties sheet */
+
+  function propertiesSheet(wb, groups, full, primes, horizons) {
+    const flat = groups.flatMap((g) => g.fields.map((f) => ({ group: g.title, label: f[0], get: f[1], z: f[2] })));
+    const ws = wb.addWorksheet("Properties", {
+      properties: { tabColor: { argb: PEN.seafoam } },
+      views: [{ state: "frozen", xSplit: 1, ySplit: 4, showGridLines: false }],
+    });
+    titleBand(ws, `${entry.name}  ·  Properties`,
+      `${full.length} ${full.length === 1 ? "property" : "properties"}, every field on the property page, one row each`,
+      Math.min(flat.length, 12));
+
+    // Row 3: the section each column belongs to, merged across its columns.
+    let c = 1;
+    groups.forEach((g, gi) => {
+      const span = g.fields.length;
+      if (span > 1) ws.mergeCells(3, c, 3, c + span - 1);
+      const cell = ws.getCell(3, c);
+      cell.value = g.title;
+      const argb = gi % 2 ? PEN.seafoam : "FF2F6A6E";
+      for (let k = c; k < c + span; k++) {
+        ws.getCell(3, k).fill = fill(argb);
+        ws.getCell(3, k).border = { left: k === c ? hair(PEN.white) : undefined };
       }
+      cell.font = font({ size: 9, bold: true, color: { argb: PEN.white } });
+      cell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+      c += span;
+    });
+    ws.getRow(3).height = 18;
+
+    // Row 4: the column headings.
+    flat.forEach((f, i) => headCell(ws.getCell(4, i + 1), f.label,
+      { align: f.z ? "right" : undefined }));
+    ws.getRow(4).height = 42;
+
+    const exitCol = flat.findIndex((f) => f.label === "Estimated exit year");
+    full.forEach((d, n) => {
+      const row = ws.getRow(5 + n);
+      flat.forEach((f, i) => {
+        const cell = row.getCell(i + 1);
+        cell.font = font(i === 0 ? { bold: true, color: { argb: PEN.navy } } : {});
+        putValue(cell, f.get(d, primes[n]), f.z,
+          i === exitCol ? horizons[Atlas.horizonClass(d.exit_year)] : null);
+        if (n % 2) cell.fill = fill(PEN.band);
+        cell.border = { bottom: hair() };
+      });
+      row.height = 18;
+    });
+
+    // Totals under the columns where a sum means something.
+    const sumLabels = new Set(["Total units", "Rental assistance units", "Vacant units", "Occupied units",
+      "Accessible units", "Contract units", "Annual fee ceiling", "Loan amount (source)",
+      "1 BR units", "2 BR units", "3 BR units", "4 BR units", "5 BR units", "6 BR units"]);
+    const tr = 5 + full.length;
+    if (full.length) {
+      flat.forEach((f, i) => {
+        const cell = ws.getCell(tr, i + 1);
+        cell.border = { top: { style: "thin", color: { argb: PEN.navy } } };
+        cell.font = font({ bold: true });
+        const col = ws.getColumn(i + 1).letter;
+        if (i === 0) cell.value = `Total (${full.length})`;
+        else if (sumLabels.has(f.label)) {
+          cell.value = { formula: `SUM(${col}5:${col}${tr - 1})` };
+          cell.numFmt = f.z || "#,##0";
+          cell.alignment = { horizontal: "right" };
+        } else if (f.label === "RA share of units") {
+          const u = ws.getColumn(flat.findIndex((x) => x.label === "Total units") + 1).letter;
+          const ra = ws.getColumn(flat.findIndex((x) => x.label === "Rental assistance units") + 1).letter;
+          cell.value = { formula: `IFERROR(SUM(${ra}5:${ra}${tr - 1})/SUM(${u}5:${u}${tr - 1}),"")` };
+          cell.numFmt = "0%";
+          cell.alignment = { horizontal: "right" };
+        }
+      });
     }
+
+    // Widths from the content, within reason.
+    flat.forEach((f, i) => {
+      let wch = Math.max(11, Math.min(16, f.label.length * 0.9));
+      full.slice(0, 300).forEach((d, n) => {
+        const v = f.get(d, primes[n]);
+        const len = typeof v === "string" && /^https?:/.test(v) ? 6
+          : String(v === null || v === undefined ? "" : v).length + (typeof v === "number" ? 4 : 0);
+        wch = Math.max(wch, Math.min(i === 0 ? 34 : 40, len + 2));
+      });
+      ws.getColumn(i + 1).width = wch;
+    });
+
+    ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4 + full.length, column: flat.length } };
+    landscape(ws, "4:4", false);
+    return ws;
+  }
+
+  /* ------------------------------------------------- property detail sheet */
+
+  function detailSheet(wb, groups, full, primes, horizons) {
+    const ws = wb.addWorksheet("Property Detail", {
+      properties: { tabColor: { argb: PEN.sorbet } },
+      views: [{ state: "frozen", xSplit: 1, ySplit: 3, showGridLines: false }],
+    });
+    const width = 1 + full.length;
+    ws.getColumn(1).width = 36;
+    for (let c = 2; c <= width; c++) ws.getColumn(c).width = 24;
+    titleBand(ws, `${entry.name}  ·  Property Detail`,
+      "The property page, one column per property", Math.max(2, Math.min(width, 8)));
+
+    headCell(ws.getCell(3, 1), "Field");
+    full.forEach((d, i) => {
+      headCell(ws.getCell(3, 2 + i), tc(d.name), { align: "center" });
+      ws.getCell(3, 2 + i).value = {
+        text: tc(d.name),
+        hyperlink: new URL(`detail.html?id=${encodeURIComponent(d.id)}`, location.href).toString(),
+        tooltip: "Open the property page in the atlas",
+      };
+      ws.getCell(3, 2 + i).font = font({ bold: true, size: 9.5, color: { argb: PEN.white } });
+    });
+    ws.getRow(3).height = 40;
+
+    let r = 4;
+    groups.forEach((g) => {
+      // Section band.
+      for (let c = 1; c <= width; c++) {
+        const cell = ws.getCell(r, c);
+        cell.fill = fill(PEN.paleSea);
+        cell.border = { top: { style: "thin", color: { argb: PEN.seafoam } } };
+      }
+      const sec = ws.getCell(r, 1);
+      sec.value = g.title.toUpperCase();
+      sec.font = font({ size: 9, bold: true, color: { argb: PEN.seafoam } });
+      sec.alignment = { indent: 1, vertical: "middle" };
+      ws.getRow(r).height = 20;
+      r += 1;
+
+      g.fields.forEach(([lab, get, z], n) => {
+        const head = ws.getCell(r, 1);
+        head.value = lab;
+        head.font = font({ color: { argb: PEN.muted } });
+        head.alignment = { indent: 2, vertical: "middle" };
+        head.border = { bottom: hair() };
+        if (n % 2) head.fill = fill(PEN.band);
+        full.forEach((d, i) => {
+          const cell = ws.getCell(r, 2 + i);
+          cell.font = font();
+          putValue(cell, get(d, primes[i]), z,
+            lab === "Estimated exit year" ? horizons[Atlas.horizonClass(d.exit_year)] : null);
+          if (typeof cell.value === "string" && cell.alignment && !cell.alignment.horizontal) {
+            cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+          } else if (typeof cell.value === "number") {
+            cell.alignment = { horizontal: "center", vertical: "middle" };
+          }
+          if (lab === "Prime Score" && typeof cell.value === "number") {
+            cell.font = font({ size: 12, bold: true, color: { argb: PEN.navy } });
+          }
+          cell.border = { bottom: hair() };
+          if (n % 2) cell.fill = fill(PEN.band);
+        });
+        r += 1;
+      });
+    });
+    landscape(ws, "3:3", full.length <= 6);
+    return ws;
   }
 
   async function exportFull() {
@@ -683,7 +1034,7 @@
     btn.disabled = true;
     btn.textContent = "Preparing...";
     try {
-      const [XLSX] = await Promise.all([loadXlsx()]);
+      const ExcelJS = await loadExcel();
       /* One shard per state, cached by the shared loader, so a portfolio
          spread over a few states costs a few requests, not one per property. */
       const list = sorted();
@@ -697,49 +1048,24 @@
       const groups = fieldGroups();
       const extras = extraFields(full, groups);
       if (extras.length) groups.push({ title: "Other fields in the data", uses: [], fields: extras });
-      const flat = groups.flatMap((g) => g.fields.map((f) => ({ group: g.title, label: f[0], get: f[1], z: f[2] })));
+      const horizons = horizonArgb();
 
-      // Sheet 2: one row per property, every field across.
-      const head = flat.map((f) => f.label);
-      const body = full.map((d, i) => flat.map((f) => {
-        const v = f.get(d, primes[i]);
-        return v === null || v === undefined ? "" : v;
-      }));
-      const wsFlat = XLSX.utils.aoa_to_sheet([head, ...body]);
-      setFormats(wsFlat, (R, C) => (R === 0 ? null : flat[C].z));
-      wsFlat["!cols"] = flat.map((f, c) => ({
-        wch: Math.min(48, Math.max(10, f.label.length + 2,
-          ...body.slice(0, 200).map((row) => String(row[c]).length + 1))),
-      }));
-      wsFlat["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: body.length, c: flat.length - 1 } }) };
+      const wb = new ExcelJS.Workbook();
+      wb.creator = Atlas.sessionEmail() || "USDA Section 515 Property Atlas";
+      wb.title = entry.name;
+      wb.created = new Date();
+      summarySheet(wb, full);
+      propertiesSheet(wb, groups, full, primes, horizons);
+      detailSheet(wb, groups, full, primes, horizons);
 
-      // Sheet 3: fields down the side, one column per property, grouped the
-      // way the property page is. Easier to read and to lift into a model.
-      const rowsT = [["Field", ...full.map((d) => tc(d.name))]];
-      const zT = [null];
-      groups.forEach((g) => {
-        rowsT.push([g.title.toUpperCase()]); zT.push(null);
-        g.fields.forEach(([lab, get, z]) => {
-          rowsT.push([lab, ...full.map((d, i) => {
-            const v = get(d, primes[i]);
-            return v === null || v === undefined ? "" : v;
-          })]);
-          zT.push(z || null);
-        });
-        rowsT.push([]); zT.push(null);
-      });
-      const wsT = XLSX.utils.aoa_to_sheet(rowsT);
-      setFormats(wsT, (R, C) => (C === 0 ? null : zT[R]));
-      wsT["!cols"] = [{ wch: 38 }, ...full.map(() => ({ wch: 26 }))];
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, summarySheet(XLSX, full), "Summary");
-      XLSX.utils.book_append_sheet(wb, wsFlat, "Properties");
-      XLSX.utils.book_append_sheet(wb, wsT, "Property Detail");
-
-      const file = entry.name.replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").toLowerCase()
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = entry.name.replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").toLowerCase()
         + "-full-" + new Date().toISOString().slice(0, 10) + ".xlsx";
-      XLSX.writeFile(wb, file);
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
       btn.textContent = "Downloaded";
       setTimeout(() => { btn.textContent = label; }, 1800);
     } catch (err) {
