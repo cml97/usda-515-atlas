@@ -67,18 +67,18 @@
       ? `<p class="pf-warn">${f.missing} of these ${plural(f.missing, "is", "are")} no longer in the
          current USDA build, so ${plural(f.missing, "it", "they")} will not appear when you open it.</p>`
       : "";
+    const href = `portfolio.html?name=${encodeURIComponent(p.name)}`;
     return `
       <article class="pf-card" data-name="${name}">
         <div class="pf-card-main">
-          <h3 class="pf-name">${name}</h3>
+          <h3 class="pf-name"><a href="${href}">${name}</a></h3>
           <p class="pf-stats">${statLine(p, f)}</p>
           <p class="pf-props">${propertyLine(f)}</p>
           ${gone}
           <p class="pf-when">Saved ${Atlas.esc(when(p.savedAt))}</p>
         </div>
         <div class="pf-card-acts">
-          <button type="button" class="btn primary" data-act="table">Open in table</button>
-          <button type="button" class="btn" data-act="map">Open on map</button>
+          <a class="btn primary" href="${href}">Open portfolio</a>
           <button type="button" class="btn" data-act="link">Copy link</button>
           <button type="button" class="btn" data-act="rename">Rename</button>
           <button type="button" class="btn danger" data-act="delete">Delete</button>
@@ -100,15 +100,6 @@
     if (!list.length) { host.innerHTML = empty(); return; }
     host.innerHTML = `<div class="pf-grid">${list.map(card).join("")}</div>`;
     host.querySelectorAll(".pf-card").forEach(wire);
-  }
-
-  /* Opening sets the stored selection and the selected-only flag, then moves
-     to the page that shows it. Both pages read the same session storage, so
-     the destination needs nothing passed to it. */
-  function open(name, page) {
-    const hit = Atlas.loadPortfolio(name);
-    if (!hit) return;
-    location.href = page;
   }
 
   async function copyLink(entry, btn) {
@@ -138,13 +129,19 @@
 
   function wire(el) {
     const name = el.dataset.name;
+
+    /* The card reads as one object, so clicking the body of it opens the
+       portfolio. Buttons and links inside it keep their own behavior. */
+    el.addEventListener("click", (ev) => {
+      if (ev.target.closest("a, button")) return;
+      location.href = `portfolio.html?name=${encodeURIComponent(name)}`;
+    });
+
     el.querySelectorAll("[data-act]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const entry = Atlas.listPortfolios().find((p) => p.name === name);
         if (!entry) { paint(); return; }
         switch (btn.dataset.act) {
-          case "table":  open(entry.name, "index.html"); break;
-          case "map":    open(entry.name, "map.html"); break;
           case "link":   copyLink(entry, btn); break;
           case "rename": rename(entry); break;
           case "delete":

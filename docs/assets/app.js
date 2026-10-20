@@ -1160,20 +1160,33 @@ const Atlas = (() => {
     const hit = listPortfolios().find(
       (p) => p.name.toLowerCase() === String(name || "").trim().toLowerCase());
     if (!hit) return null;
-    clearFilters();
-    /* clearFilters only reaches a filter bar that exists. Opening a portfolio
-       from the Portfolios tab happens on a page that has none, so the stored
-       filters have to be dropped directly or they come back with the table. */
-    clearStoredFilters();
-    try { sessionStorage.setItem(SELECTION_KEY, JSON.stringify(hit.ids)); } catch (e) {}
-    setOnlySelected(true);
+    adoptSelection(hit.ids);
     return hit;
+  }
+
+  /* The same thing for a bare list of ids, which is what a portfolio that
+     arrived on a share link and was never saved amounts to. */
+  function adoptSelection(ids) {
+    clearFilters();
+    /* clearFilters only reaches a filter bar that exists. This runs from the
+       Portfolios tab and the portfolio page, neither of which has one, so the
+       stored filters have to be dropped directly or they come back with the
+       table. */
+    clearStoredFilters();
+    const clean = [...new Set((ids || []).map(String))];
+    try { sessionStorage.setItem(SELECTION_KEY, JSON.stringify(clean)); } catch (e) {}
+    setOnlySelected(true);
+    return clean;
   }
 
   /* Portfolios do not sync between machines, so a link is how one reaches a
      colleague. The ids are the whole payload; the atlas resolves them. */
+  /* The link lands on the portfolio's own page rather than the table, because
+     a colleague opening it wants to read the portfolio, not inherit a filtered
+     table. index.html still honors the same two parameters, so links shared
+     before this change keep working. */
   function portfolioLink(entry) {
-    const u = new URL("index.html", location.href);
+    const u = new URL("portfolio.html", location.href);
     u.searchParams.set("portfolio", entry.name);
     u.searchParams.set("sel", entry.ids.join(","));
     return u.toString();
@@ -1542,7 +1555,16 @@ const Atlas = (() => {
     // The map's controls are hidden while this is open; see styles.css.
     document.body.classList.add("drawer-open");
 
-    const d = (await detail(record)) || record;
+    /* The shard carries the extra fields, but the row already in hand has the
+       name, place and headline figures. Falling back to it means a shard that
+       fails to load leaves the drawer showing less, rather than leaving it on
+       "Loading property detail..." for good. */
+    let d = record;
+    try {
+      d = (await detail(record)) || record;
+    } catch (e) {
+      d = record;
+    }
     panel.innerHTML = `
       <header>
         <button class="close" aria-label="Close">&times;</button>
@@ -1569,7 +1591,7 @@ const Atlas = (() => {
     primeWeights, setPrimeWeights, primeScore, primeBreakdown,
     saveFilters, storedFilters, clearStoredFilters,
     selectionIds, onlySelected, setOnlySelected, paintSelectionBanner, refreshView,
-    listPortfolios, savePortfolio, removePortfolio, renamePortfolio, loadPortfolio,
+    listPortfolios, savePortfolio, removePortfolio, renamePortfolio, loadPortfolio, adoptSelection,
     portfolioLink, portfolioFromUrl,
     clearFilters: () => clearFilters(),
     HAP_DB_URL, hapDeepLink,
