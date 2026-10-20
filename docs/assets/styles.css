@@ -496,6 +496,9 @@ table.grid td.name { white-space: normal; min-width: 210px; font-weight: 600; }
 .pill.none::before { background: var(--h-none); }
 
 .pill.lihtc { background: #eef0f8; color: var(--navy-soft); }
+.pill.basis { background: #e8f1f1; color: #2f6a6e; }
+.pill.basis-new { background: #3b7f83; color: #fff; }
+.pill.basis-leave { background: #eceef2; color: var(--muted); }
 
 .pager {
   display: flex;
@@ -1132,3 +1135,10 @@ html.atlas-locked body {
   color: var(--muted);
   font-size: 12.5px;
 }
+
+/* Map overlay switches: a quiet note on layers that only draw when zoomed in. */
+.leaflet-control-layers .ovl-hint { font-size: 10px; color: var(--muted); margin-left: 3px; }
+.leaflet-control-layers-overlays label { font-size: 12px; }
+.leaflet-control-layers .ovl-swatch { display: inline-block; width: 12px; height: 12px; margin: 0 6px 0 2px; vertical-align: -2px; box-sizing: border-box; }
+.leaflet-control-layers .ovl-swatch.ring { border-radius: 50%; }
+

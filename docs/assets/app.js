@@ -391,6 +391,48 @@ const Atlas = (() => {
     return titleCase(parts.slice(0, -1).join(",")) + ", " + esc(parts[parts.length - 1].trim().toUpperCase());
   }
 
+  /* ------------------------------------------------- QCT, DDA, USDA rural */
+
+  /* HUD designates QCTs and DDAs once a year, in October, for the following
+     January 1, and the data build carries both years. Either one gives the
+     130% eligible basis boost, so the two are read together as one question:
+     is this property in a boosted area now, and will it be next year. */
+  function desigYears() {
+    const d = (meta && meta.designations) || {};
+    return { now: d.designation_year || null, next: d.next_designation_year || null };
+  }
+
+  const basisNow = (r) => (r.qct === null && r.dda === null) || (r.qct === undefined && r.dda === undefined)
+    ? null : Boolean(r.qct || r.dda);
+  const basisNext = (r) => (r.qct_next === null && r.dda_next === null)
+    || (r.qct_next === undefined && r.dda_next === undefined) ? null : Boolean(r.qct_next || r.dda_next);
+
+  /* 3 joins next year, 2 in now and next, 1 in now but leaving, 0 neither.
+     The QCT, DDA and rural fields live in the per-state detail files, not
+     the index, so this is worked out from a full record. */
+  function basisRank(r) {
+    const now = basisNow(r), next = basisNext(r);
+    if (now === null) return null;
+    if (next === null) return now ? 2 : 0;
+    if (next && !now) return 3;
+    if (now && next) return 2;
+    if (now && !next) return 1;
+    return 0;
+  }
+
+  /** Short label for the table, such as "QCT", "QCT DDA" or "New 2027". */
+  function basisLabel(r) {
+    const y = desigYears();
+    const now = [r.qct && "QCT", r.dda && "DDA"].filter(Boolean).join(" ");
+    const next = [r.qct_next && "QCT", r.dda_next && "DDA"].filter(Boolean).join(" ");
+    const rank = r.basis_rank !== undefined ? r.basis_rank : basisRank(r);
+    if (rank === null || rank === undefined) return "";
+    if (rank === 3) return `<span class="pill basis-new" title="Not a QCT or DDA in ${y.now}, becomes ${next} on January 1, ${y.next}">${next} ${y.next}</span>`;
+    if (rank === 1) return `<span class="pill basis-leave" title="${now} in ${y.now}, drops off HUD's ${y.next} list">${now} until ${y.next}</span>`;
+    if (rank === 2) return `<span class="pill basis">${now || next}</span>`;
+    return "";
+  }
+
   async function load() {
     if (REMOTE && !token() && !/[#&]atlas_token=/.test(location.hash || "")) {
       promptSignIn();
@@ -1532,6 +1574,8 @@ const Atlas = (() => {
         </dl>
       </section>
 
+      ${designationSection(d)}
+
       <section>
         <h3>Ownership and loan</h3>
         <dl class="kv">
@@ -1563,6 +1607,42 @@ const Atlas = (() => {
         <p class="note">Loan figures come from the single loan record USDA publishes per property in the program exit file. A property can carry more debt than one line shows.</p>
       </section>
     `;
+  }
+
+  /** QCT, DDA and USDA rural eligibility, for the detail page and drawer. */
+  function designationSection(d) {
+    const y = desigYears();
+    const yn = (v) => (v === null || v === undefined ? "-" : v ? "Yes" : "No");
+    const hasAny = d.tract || d.qct !== undefined || d.rd_eligible !== undefined;
+    if (!hasAny) return "";
+    const change = (a, b, what) => (a === false && b === true
+      ? ` <span class="pill basis-new">becomes ${what} ${y.next}</span>`
+      : a === true && b === false ? ` <span class="pill basis-leave">drops off ${y.next}</span>` : "");
+    const tract = d.tract ? `${d.tract.slice(5, 9).replace(/^0+/, "") || "0"}.${d.tract.slice(9)}` : null;
+    const usdaDate = d.rd_checked ? (() => { const [yy, mm, dd] = d.rd_checked.split("-"); return `${mm}/${dd}/${yy}`; })() : null;
+    return `
+      <section>
+        <h3>QCT, DDA and USDA rural eligibility</h3>
+        <dl class="kv">
+          <dt>Census tract</dt><dd>${tract ? `${esc(tract)} <span class="muted">${esc(d.tract)}</span>` : "-"}</dd>
+          <dt>QCT ${y.now || ""}</dt><dd>${yn(d.qct)}</dd>
+          ${y.next ? `<dt>QCT ${y.next}</dt><dd>${yn(d.qct_next)}${change(d.qct, d.qct_next, "QCT")}</dd>` : ""}
+          <dt>DDA ${y.now || ""}</dt><dd>${yn(d.dda)}${d.dda ? ` <span class="muted">${esc(d.dda_basis || "")}${d.dda_area ? ", " + esc(d.dda_area) : ""}</span>` : ""}</dd>
+          ${y.next ? `<dt>DDA ${y.next}</dt><dd>${yn(d.dda_next)}${change(d.dda, d.dda_next, "DDA")}</dd>` : ""}
+          <dt>Tract poverty rate</dt><dd>${d.tract_poverty_rate !== null && d.tract_poverty_rate !== undefined ? (d.tract_poverty_rate * 100).toFixed(1) + "%" : "-"}</dd>
+          <dt>Tract median household income</dt><dd>${money(d.tract_median_income) || "-"}</dd>
+          <dt>USDA rural eligible</dt><dd>${d.rd_eligible === null || d.rd_eligible === undefined ? "-"
+            : d.rd_eligible ? "Yes" : '<span class="warn">No, inside an ineligible area</span>'}${usdaDate ? ` <span class="muted">checked ${usdaDate}</span>` : ""}</dd>
+        </dl>
+        <p class="note">QCT and DDA are HUD's designations for the year shown, matched on the census
+        tract and ZCTA at USDA's coordinates. Either one qualifies a new tax credit allocation for the
+        130% basis boost. HUD publishes the next year's lists each October, which is why both years
+        appear. USDA rural eligibility is USDA's own ineligible-areas map, checked monthly. An existing
+        loan stays in place when an area loses eligibility. New USDA financing, such as a Section 538
+        guarantee or a new 515 loan, needs an eligible area.
+        <a href="https://www.huduser.gov/portal/sadda/sadda_qct.html" target="_blank" rel="noopener">HUD QCT and DDA map</a> ·
+        <a href="https://eligibility.sc.egov.usda.gov/eligibility/welcomeAction.do" target="_blank" rel="noopener">USDA eligibility map</a></p>
+      </section>`;
   }
 
   /** Property detail is a page of its own now, so a click navigates rather
@@ -1614,6 +1694,7 @@ const Atlas = (() => {
   return {
     PROGRAMS, RENTAL, STATE_NAMES,
     load, apply, summarize, readFilters, buildFilterBar,
+    desigYears, basisNow, basisNext, basisRank, basisLabel,
     openDrawer, openDetail, detailSections, detail, paintManagerBanner, carryParamsIntoNav, horizonClass, horizonLabel, horizonColors, HORIZONS, titleCase, placeCase, num, pct, money,
     lock, unlock, signOut, sessionEmail,
     normManager, managers, managerParam,

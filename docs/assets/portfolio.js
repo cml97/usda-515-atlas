@@ -475,13 +475,33 @@
   const yn = (v) => (blank(v) ? "" : v ? "Yes" : "No");
   const numOr = (v) => (blank(v) || !Number.isFinite(Number(v)) ? (blank(v) ? "" : v) : Number(v));
 
+  /* Labels set the way the book sets them: title case, with initialisms
+     (LIHTC, HUD, PBS8, BR) and short joining words left alone. */
+  const SMALL = new Set(["a", "an", "and", "at", "by", "for", "in", "of", "on", "or", "per", "the", "to", "vs"]);
+  const UPPER = new Set(["ami", "dda", "fips", "fmr", "fy", "hap", "hud", "id", "lihtc", "mfi", "mfis",
+    "mpr", "pbs8", "qct", "ra", "rd", "upb", "usda", "zip", "br", "hmfa", "ami"]);
+  function bookCase(text) {
+    return String(text || "").split(" ").map((word, i) => word.split("-").map((part) => {
+      const m = part.match(/^([^A-Za-z0-9]*)([A-Za-z0-9]+)(.*)$/);
+      if (!m) return part;
+      const [, pre, core, post] = m;
+      const low = core.toLowerCase();
+      if (UPPER.has(low)) return pre + core.toUpperCase() + post;
+      if (/[A-Z].*[A-Z]/.test(core) || /\d/.test(core)) return part;
+      if (i > 0 && !pre && SMALL.has(low)) return pre + low + post;
+      return pre + low.charAt(0).toUpperCase() + low.slice(1) + post;
+    }).join("-")).join(" ");
+  }
+  /* A raw data key, such as hmfa_ami or factors.minority, as a readable label. */
+  const prettyKey = (key) => bookCase(String(key).replace(/[._]+/g, " ").trim());
+
   /* One list drives both sheets, so the flat table and the field-by-field
      sheet can never disagree. Each field is [label, getter, number format].
      Keys listed in `uses` are the record fields a field reads, so whatever is
      left over at the end can be appended rather than silently dropped. */
   function fieldGroups() {
     const ranks = Atlas.PRIME_FACTORS.map(({ key, label }) => [
-      `Prime rank: ${label}`,
+      label,
       (d, p) => (p && p.parts[key] !== null && p.parts[key] !== undefined ? Math.round(p.parts[key] * 100) : ""),
       "0",
     ]);
@@ -545,7 +565,7 @@
         fields: [
           ["Project-based contract", (d) => yn(Boolean(d.s8))],
           ["Contract family", (d) => (!d.s8 ? "" : d.s8_is_hap === false
-            ? `${d.s8_doc_type || "Other"} (not Section 8, no mark-up-to-market)` : "Section 8 HAP")],
+            ? `${d.s8_doc_type || "Other"} (Not Section 8)` : "Section 8 HAP")],
           ["Contract number", (d) => (d.s8 ? d.s8_contract || "" : "")],
           ["Contract units", (d) => (d.s8 ? numOr(d.s8_units) : ""), "#,##0"],
           ["Contract expires", (d) => (d.s8 ? d.s8_expires || "" : "")],
@@ -553,7 +573,7 @@
           ["HUD property ID", (d) => (d.s8 ? d.s8_hud_property_id || "" : "")],
           ["HUD property name", (d) => (d.s8 ? tc(d.s8_hud_name) : "")],
           ["PBS8 match evidence", (d) => (d.s8 ? (d.s8_match || {}).evidence || "" : "")],
-          ["PBS8 match worth a check", (d) => (d.s8 && d.s8_match ? yn(Boolean(d.s8_match.review)) : "")],
+          ["PBS8 match flagged for review", (d) => (d.s8 && d.s8_match ? yn(Boolean(d.s8_match.review)) : "")],
           ["PBS8 Database link", (d) => (d.s8 ? Atlas.hapDeepLink(d) : "")],
         ] },
       { title: "Management fee ceiling", uses: ["mgmt_fee_max", "mgmt_fee_annual_max", "mgmt_fee_offroad",
@@ -573,6 +593,26 @@
           ["Restrictive clause expires", (d) => d.restrictive_clause_expires || ""],
           ["MPR revitalized", (d) => yn(Boolean(d.revitalized))],
         ] },
+      { title: "QCT, DDA and USDA rural", uses: ["tract", "zcta", "qct", "qct_next", "dda", "dda_next",
+          "dda_basis", "dda_next_basis", "dda_area", "desig_year", "desig_next_year",
+          "tract_poverty_rate", "tract_median_income", "rd_eligible", "rd_checked", "basis_rank"],
+        fields: (() => {
+          const y = Atlas.desigYears();
+          return [
+            ["Census tract", (d) => d.tract || ""],
+            ["ZCTA", (d) => d.zcta || ""],
+            [`QCT ${y.now || ""}`.trim(), (d) => yn(d.qct)],
+            ...(y.next ? [[`QCT ${y.next}`, (d) => yn(d.qct_next)]] : []),
+            [`DDA ${y.now || ""}`.trim(), (d) => yn(d.dda)],
+            ...(y.next ? [[`DDA ${y.next}`, (d) => yn(d.dda_next)]] : []),
+            ["DDA basis", (d) => [d.dda_basis, d.dda_area].filter(Boolean).join(", ")],
+            ...(y.next ? [[`New QCT or DDA in ${y.next}`, (d) => { const k = Atlas.basisRank(d); return k === null ? "" : yn(k === 3); }]] : []),
+            ["Tract poverty rate", (d) => numOr(d.tract_poverty_rate), "0.0%"],
+            ["Tract median household income", (d) => numOr(d.tract_median_income), "$#,##0"],
+            ["USDA rural eligible", (d) => yn(d.rd_eligible)],
+            ["USDA eligibility checked", (d) => d.rd_checked || ""],
+          ];
+        })() },
       { title: "Ownership and loan", uses: ["borrower_name", "borrower_type", "borrower_city_state",
           "management", "profit_type", "loan_amt", "interest_rate", "orig_loan_term",
           "fy_loan_obligation", "remaining_term_days", "date_of_operation"],
@@ -609,8 +649,8 @@
         if (k === "factors") {
           Object.keys(v || {}).forEach((sub) => {
             if (Atlas.PRIME_FACTORS.some((f) => f.key === sub)) return;
-            const lab = sub === "minority" ? "Minority share factor (prepay discount)" : `factors.${sub}`;
-            extra.set(`factors.${sub}`, [lab, (r) => numOr((r.factors || {})[sub])]);
+            const lab = sub === "minority" ? "Minority share" : prettyKey(`factors.${sub}`);
+            extra.set(`factors.${sub}`, [lab, (r) => numOr((r.factors || {})[sub]), sub === "minority" ? "0%" : undefined]);
           });
           return;
         }
@@ -619,14 +659,14 @@
           Object.keys(v).forEach((sub) => {
             const key = `${k}.${sub}`;
             if (!extra.has(key)) {
-              extra.set(key, [key, (r) => {
+              extra.set(key, [prettyKey(key), (r) => {
                 const x = (r[k] || {})[sub];
                 return x && typeof x === "object" ? JSON.stringify(x) : (typeof x === "boolean" ? yn(x) : numOr(x));
               }]);
             }
           });
         } else if (!extra.has(k)) {
-          extra.set(k, [k, (r) => {
+          extra.set(k, [prettyKey(k), (r) => {
             const x = r[k];
             if (Array.isArray(x)) return x.join("; ");
             return typeof x === "boolean" ? yn(x) : numOr(x);
@@ -760,59 +800,44 @@
     const w = Atlas.primeWeights();
     const meta = Atlas.meta || {};
     const us = (iso) => (iso && iso.length >= 10 ? `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}` : "");
-    // Two three-column tables side by side, with a narrow gutter between.
+    const today = new Date();
+    const stamp = `${String(today.getMonth() + 1).padStart(2, "0")}/${String(today.getDate()).padStart(2, "0")}/${today.getFullYear()}`;
+
+    // Two tables side by side, with a narrow gutter between.
     ws.columns = [
       { width: 30 }, { width: 14 }, { width: 14 }, { width: 4 },
       { width: 30 }, { width: 14 }, { width: 14 },
     ];
     let r = pageHead(ws, "Portfolio Summary", entry.name, 7);
 
-    // The headline figures, set the way the book's "By the Numbers" page is:
-    // a large seafoam figure over a small bold caption.
-    const tiles = [
-      ["PROPERTIES", s.properties, "#,##0"],
-      ["TOTAL UNITS", s.units, "#,##0"],
-      ["RENTAL ASSISTANCE UNITS", s.ra, "#,##0"],
-      ["RA SHARE OF UNITS", s.raShare === null ? "" : s.raShare, "0%"],
-      ["AVERAGE PROPERTY SIZE", s.avgSize, "#,##0"],
-      ["EXITING WITHIN 10 YEARS", s.exiting, "#,##0"],
-    ];
-    // Three across, two rows, so each figure has room. [first column, span]
-    const slots = [[1, 1], [2, 3], [5, 3]];
-    [[0, 1, 2], [3, 4, 5]].forEach((set, k) => {
-      const vr = r + k * 3;
-      set.forEach((t, j) => {
-        const [c0, span] = slots[j];
-        ws.mergeCells(vr, c0, vr, c0 + span - 1);
-        ws.mergeCells(vr + 1, c0, vr + 1, c0 + span - 1);
-        const val = ws.getCell(vr, c0);
-        val.value = tiles[t][1];
-        val.numFmt = tiles[t][2];
-        val.font = font({ size: 24, color: { argb: PEN.seafoam } });
-        val.alignment = { horizontal: "left", vertical: "bottom" };
-        const cap = ws.getCell(vr + 1, c0);
-        cap.value = tiles[t][0];
-        cap.font = font({ size: 8, bold: true });
-        cap.alignment = { horizontal: "left", vertical: "top" };
-      });
-      ws.getRow(vr).height = 32;
-      ws.getRow(vr + 1).height = 16;
-      ws.getRow(vr + 2).height = 8;
-    });
-    r += 7;
+    // Where the numbers come from, in one quiet line under the title.
+    ws.mergeCells(4, 1, 4, 7);
+    const src = ws.getCell(4, 1);
+    const by = Atlas.sessionEmail();
+    src.value = [
+      `Exported ${stamp}${by ? ` by ${by}` : ""}`,
+      meta.property_report_date ? `Property Characteristics as of ${us(meta.property_report_date)}` : "",
+      meta.exit_report_date ? `Program Exit Data as of ${us(meta.exit_report_date)}` : "",
+    ].filter(Boolean).join("   |   ");
+    src.font = font({ size: 8, color: { argb: PEN.gray } });
+    src.alignment = { vertical: "top" };
+    ws.getRow(4).height = 18;
+    r += 1;
 
-    // A small book-style table: navy title bar, slate headings, gray labels.
+    // A book-style table: navy title bar, slate headings, gray labels.
     const table = (col, row0, title, head, rows, fmts, total) => {
       let rr = row0;
-      titleBar(ws, rr, col, head.length, title);
+      titleBar(ws, rr, col, head ? head.length : rows[0].length, title);
       rr += 1;
-      head.forEach((h, i) => headCell(ws.getCell(rr, col + i), h, { align: i ? "center" : "left" }));
-      ws.getRow(rr).height = 18;
-      rr += 1;
+      if (head) {
+        head.forEach((h, i) => headCell(ws.getCell(rr, col + i), h, { align: i ? "center" : "left" }));
+        ws.getRow(rr).height = 18;
+        rr += 1;
+      }
       rows.forEach((vals) => {
         vals.forEach((v, i) => {
           const cell = ws.getCell(rr, col + i);
-          if (i === 0) { labelCell(cell, v); return; }
+          if (i === 0) { labelCell(cell, v, !head); return; }
           putValue(cell, v, fmts[i]);
         });
         ws.getRow(rr).height = 17;
@@ -832,51 +857,44 @@
       return rr;
     };
 
-    const info = [
-      ["Exported", new Date().toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" })],
-      ["Exported by", Atlas.sessionEmail() || ""],
-      ["Property Characteristics as of", us(meta.property_report_date)],
-      ["Program Exit Data as of", us(meta.exit_report_date)],
-    ];
     const tallyRows = (label) => tally(null, label).map(([k, v]) => [k, v.n, v.units]);
     const tot = ["Total", s.properties, s.units];
     const f3 = [null, "#,##0", "#,##0"];
 
-    // Left column of tables.
+    // The headline figures as a plain two-column table, the way the book
+    // sets its pricing summary. The value spans the last two columns.
+    const overview = [
+      ["Properties", s.properties, "#,##0"],
+      ["Total Units", s.units, "#,##0"],
+      ["Rental Assistance Units", s.ra, "#,##0"],
+      ["RA Share of Units", s.raShare === null ? "" : s.raShare, "0%"],
+      ["Average Property Size", s.avgSize, "#,##0"],
+      ["Exiting Within 10 Years", s.exiting, "#,##0"],
+    ];
     let left = r;
-    titleBar(ws, left, 1, 3, "Export Details");
+    titleBar(ws, left, 1, 3, "Portfolio Overview");
     left += 1;
-    info.forEach(([k, v]) => {
+    overview.forEach(([k, v, z]) => {
       labelCell(ws.getCell(left, 1), k, true);
       ws.mergeCells(left, 2, left, 3);
-      putValue(ws.getCell(left, 2), v);
+      putValue(ws.getCell(left, 2), v, z);
       ws.getCell(left, 3).border = { bottom: line() };
+      ws.getRow(left).height = 17;
       left += 1;
     });
     left = table(1, left + 1, "By State", ["State", "Properties", "Units"],
       tallyRows((x) => (x.state ? (Atlas.STATE_NAMES[x.state] || x.state) : "")), f3, tot);
     left = table(1, left + 1, "By Management", ["Management Agent", "Properties", "Units"],
-      tallyRows((x) => tc(x.management) || "Not stated"), f3, tot);
+      tallyRows((x) => tc(x.management) || "Not Stated"), f3, tot);
 
-    // Right column of tables.
     let right = table(5, r, "By Exit Horizon", ["Exit Year", "Properties", "Units"],
-      tallyRows((x) => Atlas.horizonLabel(x.exit_year)), f3, tot);
+      tallyRows((x) => (x.exit_year ? Atlas.horizonLabel(x.exit_year) : "Not Reported")), f3, tot);
     right = table(5, right + 1, "Prime Score Weights", ["Factor", "Weight"],
-      Atlas.PRIME_FACTORS.map(({ key, label }) => [label, w[key]]), [null, "0"], null);
-
-    let foot = Math.max(left, right) + 1;
-    ws.mergeCells(foot, 1, foot, 7);
-    const note = ws.getCell(foot, 1);
-    note.value = "*Prime Score ranks each property against USDA's whole portfolio, so it shifts a little "
-      + "with every data refresh. The Properties sheet carries every field in one row per property. "
-      + "Property Detail shows the same fields down the side, one column per property.";
-    note.font = font({ size: 8.5 });
-    note.alignment = { wrapText: true, vertical: "top" };
-    ws.getRow(foot).height = 30;
+      Atlas.PRIME_FACTORS.map(({ key, label }) => [bookCase(label), w[key]]), [null, "0"], null);
 
     if (s.missing > 0) {
       const have = new Set(records.map((x) => String(x.id)));
-      foot = table(1, foot + 2, "Saved IDs Not in the Current Build", ["MFIS Project Key"],
+      table(1, Math.max(left, right) + 1, "Saved IDs Not in the Current Build", ["MFIS Project Key"],
         entry.ids.filter((id) => !have.has(String(id))).map((id) => [id]), [null], null);
     }
     printSetup(ws, null, "page");
@@ -891,9 +909,7 @@
       properties: { tabColor: { argb: PEN.seafoam } },
       views: [{ state: "frozen", xSplit: 1, ySplit: 6, showGridLines: false }],
     });
-    pageHead(ws, "Properties",
-      `${entry.name}  |  ${full.length} ${full.length === 1 ? "property" : "properties"}, every field on the property page`,
-      Math.min(flat.length, 10));
+    pageHead(ws, "Properties", entry.name, Math.min(flat.length, 10));
 
     // Row 5: navy group bars over their columns, the way the book heads
     // "Year Ending" and "T-12" over their pairs of columns.
@@ -925,7 +941,7 @@
     // Totals under the columns where a sum means something.
     const sumLabels = new Set(["Total units", "Rental assistance units", "Vacant units", "Occupied units",
       "Accessible units", "Contract units", "Annual fee ceiling", "Loan amount (source)",
-      "1 BR units", "2 BR units", "3 BR units", "4 BR units", "5 BR units", "6 BR units"]);
+      "1 BR units", "2 BR units", "3 BR units", "4 BR units", "5 BR units", "6 BR units"].map(bookCase));
     const first = 7;
     const tr = first + full.length;
     if (full.length) {
@@ -936,14 +952,14 @@
         cell.alignment = { horizontal: "center" };
         const col = ws.getColumn(i + 1).letter;
         if (i === 0) {
-          cell.value = `Total (${full.length})`;
+          cell.value = "Total";
           cell.alignment = { indent: 1 };
         } else if (sumLabels.has(f.label)) {
           cell.value = { formula: `SUM(${col}${first}:${col}${tr - 1})` };
           cell.numFmt = f.z || "#,##0";
-        } else if (f.label === "RA share of units") {
-          const u = ws.getColumn(flat.findIndex((x) => x.label === "Total units") + 1).letter;
-          const ra = ws.getColumn(flat.findIndex((x) => x.label === "Rental assistance units") + 1).letter;
+        } else if (f.label === bookCase("RA share of units")) {
+          const u = ws.getColumn(flat.findIndex((x) => x.label === bookCase("Total units")) + 1).letter;
+          const ra = ws.getColumn(flat.findIndex((x) => x.label === bookCase("Rental assistance units")) + 1).letter;
           cell.value = { formula: `IFERROR(SUM(${ra}${first}:${ra}${tr - 1})/SUM(${u}${first}:${u}${tr - 1}),"")` };
           cell.numFmt = "0%";
         }
@@ -977,8 +993,7 @@
     const width = 1 + full.length;
     ws.getColumn(1).width = 36;
     for (let c = 2; c <= width; c++) ws.getColumn(c).width = 24;
-    pageHead(ws, "Property Detail", `${entry.name}  |  The property page, one column per property`,
-      Math.max(2, Math.min(width, 6)));
+    pageHead(ws, "Property Detail", entry.name, Math.max(2, Math.min(width, 6)));
 
     headCell(ws.getCell(5, 1), "", { align: "left" });
     full.forEach((d, i) => {
@@ -1010,7 +1025,7 @@
           const cell = ws.getCell(r, 2 + i);
           putValue(cell, get(d, primes[i]), z);
           if (cell.alignment) cell.alignment = { ...cell.alignment, wrapText: true };
-          if (lab === "Prime Score" && typeof cell.value === "number") {
+          if (lab === bookCase("Prime Score") && typeof cell.value === "number") {
             cell.font = font({ bold: true });
           }
         });
@@ -1042,7 +1057,11 @@
 
       const groups = fieldGroups();
       const extras = extraFields(full, groups);
-      if (extras.length) groups.push({ title: "Other fields in the data", uses: [], fields: extras });
+      if (extras.length) groups.push({ title: "Other Data", uses: [], fields: extras });
+      groups.forEach((g) => {
+        g.title = bookCase(g.title);
+        g.fields = g.fields.map(([lab, get, z]) => [bookCase(lab), get, z]);
+      });
 
       const wb = new ExcelJS.Workbook();
       wb.creator = Atlas.sessionEmail() || "USDA Section 515 Property Atlas";

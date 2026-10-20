@@ -185,6 +185,9 @@
         <div><span>RA units</span><b>${Atlas.num(d.ra_units)}</b></div>
         <div><span>Section 8</span><b>${d.s8 ? "Yes" : "No"}</b></div>
         <div><span>LIHTC</span><b>${d.lihtc ? "Yes" : "No"}</b></div>
+        ${d.basis_rank === null || d.basis_rank === undefined ? ""
+          : `<div><span>QCT / DDA</span><b>${d.basis_rank === 0 ? "No" : Atlas.basisLabel(d)}</b></div>`}
+        ${d.rd_eligible === false ? '<div><span>USDA rural</span><b>Ineligible</b></div>' : ""}
         <div><span>Exit</span><b><span class="pill ${cls}">${Atlas.horizonLabel(d.exit_year)}</span></b></div>
       </div>`;
     document.title = `${Atlas.titleCase(d.name)} - USDA Section 515 Property Atlas`;
@@ -203,7 +206,8 @@
       return;
     }
 
-    const full = (await Atlas.detail(stub)) || stub;
+    const full = { ...stub, ...((await Atlas.detail(stub)) || {}) };
+    full.basis_rank = Atlas.basisRank(full);
     drawHead(full);
     $("dbody").innerHTML = Atlas.detailSections(full);
 

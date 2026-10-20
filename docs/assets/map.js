@@ -40,6 +40,16 @@
 
   const BASEMAP_KEY = "atlas.basemap";
 
+  /* Overlay layers, all switched off to start. HUD's QCT and DDA areas come
+     from HUD's own hosted layers on its open data portal, and USDA's
+     ineligible areas from the map service behind USDA's eligibility site.
+     HUD names its hosted layers by year, so the newest one HUD has posted is
+     found at load time; HUD usually posts the next year's layer some weeks
+     after the October notice. */
+  const HUD_ARCGIS = "https://services.arcgis.com/VTyQ9soqVukalItT/arcgis/rest/services/";
+  const USDA_ELIGIBILITY = "https://rdgdwe.sc.egov.usda.gov/arcgis/rest/services/Eligibility/Eligibility/MapServer";
+  const OVERLAY_COLOR = { qct: "#3b7f83", dda: "#081937", usda: "#5a5c65", flip: "#3b7f83" };
+
   let map;
   let cluster;
   let COLORS = {};
@@ -47,6 +57,8 @@
   let refLayer = null;
   let legendBody = null;
   let currentBasemap = "muted";
+  let flipLayer = null;
+  let lastPoints = [];
 
   function storedBasemap() {
     try {
@@ -206,10 +218,115 @@
     cluster.clearLayers();
     const points = rows.filter((r) => r.lat !== null && r.lon !== null);
     cluster.addLayers(points.map(marker));
+    lastPoints = points;
+    paintFlips(points);
 
     if (points.length && rows.length < Atlas.index.length) {
       map.fitBounds(L.latLngBounds(points.map((r) => [r.lat, r.lon])).pad(0.12));
     }
+  }
+
+  /* The newest year HUD has posted for a layer family, tried newest first. */
+  async function hudLayer(family, years) {
+    for (const y of years) {
+      if (!y) continue;
+      const url = `${HUD_ARCGIS}${family}_${y}/FeatureServer/0`;
+      try {
+        const res = await fetch(`${url}?f=json`);
+        const body = await res.json();
+        if (!body.error) return { url, year: y };
+      } catch (e) { /* try the next year */ }
+    }
+    return null;
+  }
+
+  /* Properties that pick up a QCT or DDA on January 1, drawn as rings over
+     the clusters so they can be found at any zoom. Follows the filters. */
+  function paintFlips(points) {
+    if (!flipLayer) return;
+    flipLayer.clearLayers();
+    points.filter((r) => Atlas.basisRank(r) === 3).forEach((r) => {
+      const y = Atlas.desigYears();
+      const what = [r.qct_next && !r.qct && "QCT", r.dda_next && !r.dda && "DDA"].filter(Boolean).join(" and ");
+      L.circleMarker([r.lat, r.lon], {
+        radius: radiusFor(r.units) + 4, color: OVERLAY_COLOR.flip, weight: 3, fill: false, pane: "flipPane",
+      })
+        .bindTooltip(`<b>${Atlas.titleCase(r.name)}</b><br>${Atlas.titleCase(r.city)}, ${r.state}<br>Becomes ${what} on January 1, ${y.next}`)
+        .on("click", () => Atlas.openDetail(r))
+        .addTo(flipLayer);
+    });
+  }
+
+  /* Thousands of tract polygons are too much to pull at national zoom, so a
+     layer like this only fetches once the map is zoomed in far enough. The
+     checkbox stays live at every zoom; a switched-on layer simply appears
+     when you get close. Leaflet's own minZoom would grey the box out instead,
+     which reads as broken. */
+  function zoomGated(layer, minZoom) {
+    const group = L.layerGroup();
+    const sync = () => {
+      if (!map.hasLayer(group)) return;
+      if (map.getZoom() >= minZoom) { if (!group.hasLayer(layer)) group.addLayer(layer); }
+      else if (group.hasLayer(layer)) group.removeLayer(layer);
+    };
+    group.on("add", sync);
+    group.on("remove", () => group.removeLayer(layer));
+    map.on("zoomend", sync);
+    return group;
+  }
+
+  async function addOverlays() {
+    if (!window.L || !L.esri) return;
+    const y = Atlas.desigYears();
+    const years = [y.next, y.now, new Date().getFullYear()];
+    const [qct, dda] = await Promise.all([
+      hudLayer("QUALIFIED_CENSUS_TRACTS", years),
+      hudLayer("Difficult_Development_Areas", years),
+    ]);
+    const overlays = {};
+    const area = (color) => () => ({ color, weight: 1, fillColor: color, fillOpacity: 0.18 });
+    // DDAs as a dashed outline, so a tract that is both reads as both.
+    const outline = (color) => () => ({ color, weight: 1.5, dashArray: "4 3", fillColor: color, fillOpacity: 0.05 });
+    const swatch = (color, dashed) => `<i class="ovl-swatch" style="${dashed
+      ? `border:1.5px dashed ${color};background:transparent`
+      : `background:${color}33;border:1px solid ${color}`}"></i>`;
+
+    if (qct) {
+      overlays[`${swatch(OVERLAY_COLOR.qct)}HUD QCTs ${qct.year} <span class="ovl-hint">zoom in</span>`] = zoomGated(L.esri.featureLayer({
+        url: qct.url, simplifyFactor: 0.5, precision: 5,
+        style: area(OVERLAY_COLOR.qct), pane: "overlayPane",
+        attribution: "QCT and DDA areas: HUD",
+      }), 8);
+    }
+    if (dda) {
+      overlays[`${swatch(OVERLAY_COLOR.dda, true)}HUD DDAs ${dda.year} <span class="ovl-hint">zoom in</span>`] = zoomGated(L.esri.featureLayer({
+        url: dda.url, simplifyFactor: 0.5, precision: 5,
+        style: outline(OVERLAY_COLOR.dda), pane: "overlayPane",
+      }).bindTooltip((l) => Atlas.esc(l.feature.properties.DDA_NAME || "DDA")), 6);
+    }
+    // USDA draws these in orange. Restyled to the atlas's slate so the
+    // three overlays read as one set. f "image" because the service's JSON
+    // export answers with nothing.
+    overlays[`${swatch(OVERLAY_COLOR.usda)}USDA ineligible areas`] = L.esri.dynamicMapLayer({
+      url: USDA_ELIGIBILITY, layers: [4], opacity: 0.8, pane: "overlayPane", f: "image",
+      // Pre-serialized: with f "image" esri-leaflet passes this straight into
+      // the URL, and an array would arrive as "[object Object]".
+      dynamicLayers: JSON.stringify([{
+        id: 4, source: { type: "mapLayer", mapLayerId: 4 },
+        drawingInfo: { renderer: { type: "simple", symbol: {
+          type: "esriSFS", style: "esriSFSSolid", color: [90, 92, 101, 120],
+          outline: { type: "esriSLS", style: "esriSLSSolid", color: [90, 92, 101, 220], width: 0.6 },
+        } } },
+      }]),
+      attribution: "Ineligible areas: USDA Rural Development",
+    });
+    if (y.next) {
+      flipLayer = L.layerGroup();
+      overlays[`<i class="ovl-swatch ring" style="border:2.5px solid ${OVERLAY_COLOR.flip}"></i>Becomes QCT or DDA in ${y.next}`] = flipLayer;
+    }
+
+    L.control.layers(null, overlays, { collapsed: false, position: "topright" }).addTo(map);
+    paintFlips(lastPoints);
   }
 
   Atlas.load().then(({ meta }) => {
@@ -220,6 +337,9 @@
     map.createPane("basemapLabels");
     map.getPane("basemapLabels").style.zIndex = 250;
     map.getPane("basemapLabels").style.pointerEvents = "none";
+    // Rings for properties about to flip sit above the clusters.
+    map.createPane("flipPane");
+    map.getPane("flipPane").style.zIndex = 650;
 
     setBasemap(storedBasemap());
 
@@ -275,6 +395,7 @@
     Atlas.carryParamsIntoNav(document);
     Atlas.buildFilterBar(document, refresh);
     refresh();
+    addOverlays();
 
     // Re-measure once more after the browser has finished its first paint, and
     // again if the window changes shape.
