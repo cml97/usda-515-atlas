@@ -899,6 +899,7 @@ const Atlas = (() => {
       minExit: numOf("f-exit-min"),
       maxExit: numOf("f-exit-max"),
       mgmt: managerParam(),
+      onlySelected: onlySelected(),
     };
   }
 
@@ -916,6 +917,7 @@ const Atlas = (() => {
     if (f.prepay) n += 1;
     if (f.minUnits !== null || f.maxUnits !== null) n += 1;
     if (f.minExit !== null || f.maxExit !== null) n += 1;
+    if (f.onlySelected) n += 1;
     return n;
   }
 
@@ -926,8 +928,10 @@ const Atlas = (() => {
     const counties = f.counties && f.counties.length ? new Set(f.counties) : null;
     const programs = f.programs && f.programs.length ? new Set(f.programs.map(String)) : null;
     const rentals = f.rentals && f.rentals.length ? new Set(f.rentals) : null;
+    const picked = f.onlySelected ? selectionIds() : null;
 
     return index.filter((r) => {
+      if (picked && !picked.has(String(r.id))) return false;
       if (states && !states.has(r.state)) return false;
       if (counties && !counties.has(String(r.fips))) return false;
       if (programs && !programs.has(String(r.program_code))) return false;
@@ -1002,6 +1006,87 @@ const Atlas = (() => {
      the jump from one view to the other, and survives the back button,
      without putting a long query string in front of the reader. Session
      rather than local, so a new tab starts clean. */
+  /* ------------------------------------------------- the selected-only view
+
+     Selecting properties and then asking to see only those is a filter like
+     any other, so it runs through apply() with the rest rather than being
+     bolted onto the table. select.js owns the checkboxes and writes the id
+     list; this reads it. Keeping the flag in sessionStorage means the view
+     survives a jump between the table and the map, which is the point: you
+     pick five, then you want those five on the map too. */
+
+  const SELECTION_KEY = "atlas.selection";
+  const ONLY_KEY = "atlas.only_selected";
+
+  function selectionIds() {
+    try {
+      const raw = sessionStorage.getItem(SELECTION_KEY);
+      const list = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(list) ? list.map(String) : []);
+    } catch (e) { return new Set(); }
+  }
+
+  function onlySelected() {
+    try { return sessionStorage.getItem(ONLY_KEY) === "1"; } catch (e) { return false; }
+  }
+
+  /* An empty selection with the flag on would show an empty table and no clue
+     why, so the flag cannot be on without something selected. */
+  function setOnlySelected(on) {
+    const live = Boolean(on) && selectionIds().size > 0;
+    try {
+      if (live) sessionStorage.setItem(ONLY_KEY, "1");
+      else sessionStorage.removeItem(ONLY_KEY);
+    } catch (e) {}
+    return live;
+  }
+
+  /* The flag reaches pages that have no checkbox to turn it off, so every page
+     that filters says so and offers the way out. */
+  function paintSelectionBanner(root) {
+    const anchor = root.querySelector("#mgmt-banner");
+    let host = root.querySelector("#sel-banner");
+    if (!onlySelected()) {
+      if (host) { host.hidden = true; host.innerHTML = ""; }
+      return;
+    }
+    if (!host) {
+      host = document.createElement("div");
+      host.className = "chip-banner";
+      host.id = "sel-banner";
+      if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(host, anchor);
+      else root.body && root.body.prepend(host);
+    }
+    const picked = selectionIds();
+    const rows = index.filter((r) => picked.has(String(r.id)));
+    const units = rows.reduce((n, r) => n + (r.units || 0), 0);
+    const onMap = /map\.html/.test(location.pathname);
+    host.hidden = false;
+    host.innerHTML =
+      `<span>Showing <strong>your selection only</strong>:
+        ${rows.length.toLocaleString()} ${rows.length === 1 ? "property" : "properties"},
+        ${units.toLocaleString()} units</span>
+       <a href="${onMap ? "index.html" : "map.html"}">${onMap ? "See them in the table" : "See them on the map"}</a>
+       <a href="#" id="sel-banner-off">Show all properties</a>`;
+    const off = host.querySelector("#sel-banner-off");
+    if (off) {
+      off.addEventListener("click", (e) => {
+        e.preventDefault();
+        setOnlySelected(false);
+        refreshView();
+      });
+    }
+  }
+
+  /* The page hands its own repaint to buildFilterBar. Holding on to it lets
+     anything that changes a filter outside the bar, such as the selection
+     tray, redraw the page without each page exporting its own hook. */
+  let pageRefresh = null;
+  function refreshView() {
+    paintSelectionBanner(document);
+    if (pageRefresh) pageRefresh();
+  }
+
   const FILTER_KEY = "atlas.filters";
 
   function saveFilters(root) {
@@ -1029,10 +1114,12 @@ const Atlas = (() => {
 
   function buildFilterBar(root, onChange) {
     const counties = countyList();
+    pageRefresh = onChange;
 
     function fire() {
       saveFilters(root);
       paintClear();
+      paintSelectionBanner(root);
       onChange();
     }
 
@@ -1154,12 +1241,15 @@ const Atlas = (() => {
       Object.values(FIELDS).forEach((f) => f.clear());
       root.querySelectorAll('#filterbar input[type="search"], #filterbar input[type="number"]')
         .forEach((el) => { el.value = ""; });
+      setOnlySelected(false);
       clearStoredFilters();
       paintClear();
+      paintSelectionBanner(root);
       onChange();
     });
 
     paintClear();
+    paintSelectionBanner(root);
   }
 
   function closeDrawer() {
@@ -1360,6 +1450,7 @@ const Atlas = (() => {
     PRIME_FACTORS, PRIME_DEFAULTS, PRIME_SUMMARY, PRIME_EXPLAINER,
     primeWeights, setPrimeWeights, primeScore, primeBreakdown,
     saveFilters, storedFilters, clearStoredFilters,
+    selectionIds, onlySelected, setOnlySelected, paintSelectionBanner, refreshView,
     HAP_DB_URL, hapDeepLink,
     dataUrl, fetchData, download, esc, signInUrl, promptSignIn,
     get index() { return index; },
