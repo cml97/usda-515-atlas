@@ -639,60 +639,86 @@
 
   /* ------------------------------------------------------ workbook styling */
 
-  /* Greysteel's Penrose palette, so the export reads as a house document. */
+  /* Styled after Greysteel's BOV books: a navy serif page title on white, a
+     small gray running head, navy table title bars, slate column headings
+     with a seafoam rule beneath, a light gray label column and thin gray
+     rules between rows. Navy, slate and seafoam only. */
   const PEN = {
-    navy: "FF081937", seafoam: "FF3B7F83", sorbet: "FFF29651",
-    ink: "FF1E2433", muted: "FF66708A", band: "FFF4F7FA", rule: "FFDCE2EA",
-    paleSea: "FFE8F1F1", white: "FFFFFFFF",
+    navy: "FF081937", slate: "FF5A5C65", seafoam: "FF3B7F83",
+    ink: "FF262626", gray: "FF7F7F7F", label: "FFF2F2F2", rule: "FFD9D9D9",
+    white: "FFFFFFFF",
   };
   const FONT = "Proxima Nova";
+  const TITLE_FONT = "Larken";
   const fill = (argb) => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
   const font = (o = {}) => ({ name: FONT, size: 10, color: { argb: PEN.ink }, ...o });
-  const hair = (argb = PEN.rule) => ({ style: "thin", color: { argb } });
+  const line = (argb = PEN.rule, style = "thin") => ({ style, color: { argb } });
+  const RUNNING = () => `USDA SECTION 515 PROPERTY ATLAS : ${entry.name.toUpperCase()}`;
 
-  /* The site's exit horizon colors, as ARGB, so an exit year in the workbook
-     carries the same color it does on the page. */
-  function horizonArgb() {
-    const css = Atlas.horizonColors();
-    const out = {};
-    Object.keys(css).forEach((k) => {
-      const hex = String(css[k] || "").replace("#", "").trim();
-      out[k] = /^[0-9a-f]{6}$/i.test(hex) ? "FF" + hex.toUpperCase() : PEN.muted;
-    });
-    return out;
-  }
-
-  /* Navy band across the top of every sheet, with a seafoam subtitle under it. */
-  function titleBand(ws, title, subtitle, width) {
+  /* Running head, page title and subtitle, the way each page of the book
+     opens. Returns the first free row. */
+  function pageHead(ws, title, subtitle, width) {
     ws.mergeCells(1, 1, 1, width);
-    const t = ws.getCell(1, 1);
-    t.value = title;
-    t.font = font({ size: 16, bold: true, color: { argb: PEN.white } });
-    t.fill = fill(PEN.navy);
-    t.alignment = { vertical: "middle", indent: 1 };
-    ws.getRow(1).height = 34;
-    for (let c = 2; c <= width; c++) ws.getCell(1, c).fill = fill(PEN.navy);
+    const run = ws.getCell(1, 1);
+    run.value = RUNNING();
+    run.font = font({ size: 8, color: { argb: PEN.gray } });
+    run.alignment = { horizontal: "right", vertical: "middle" };
+    ws.getRow(1).height = 18;
 
     ws.mergeCells(2, 1, 2, width);
-    const s = ws.getCell(2, 1);
+    const t = ws.getCell(2, 1);
+    t.value = title;
+    t.font = { name: TITLE_FONT, size: 26, bold: true, color: { argb: PEN.navy } };
+    t.alignment = { vertical: "bottom" };
+    ws.getRow(2).height = 40;
+
+    ws.mergeCells(3, 1, 3, width);
+    const s = ws.getCell(3, 1);
     s.value = subtitle;
-    s.font = font({ size: 10, italic: true, color: { argb: PEN.seafoam } });
-    s.alignment = { vertical: "middle", indent: 1 };
-    ws.getRow(2).height = 20;
+    s.font = font({ size: 12 });
+    s.alignment = { vertical: "top" };
+    ws.getRow(3).height = 22;
+    ws.getRow(4).height = 10;
+    return 5;
   }
 
+  /* Navy bar with a centered white title, across a table's width. */
+  function titleBar(ws, row, col, width, text) {
+    if (width > 1) ws.mergeCells(row, col, row, col + width - 1);
+    const cell = ws.getCell(row, col);
+    cell.value = text;
+    cell.font = font({ size: 11, color: { argb: PEN.white } });
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+    for (let c = col; c < col + width; c++) ws.getCell(row, c).fill = fill(PEN.navy);
+    ws.getRow(row).height = 20;
+  }
+
+  /* Slate column heading with the seafoam rule under it. */
   function headCell(cell, text, opts = {}) {
     cell.value = text;
-    cell.font = font({ bold: true, color: { argb: PEN.white }, size: 9.5 });
-    cell.fill = fill(opts.argb || PEN.navy);
-    cell.alignment = { vertical: "middle", horizontal: opts.align || "left", wrapText: true,
-      indent: opts.align === "center" ? 0 : 1 };
-    cell.border = { bottom: hair(PEN.navy) };
+    cell.font = font({ size: 10, color: { argb: PEN.white } });
+    cell.fill = fill(PEN.slate);
+    cell.alignment = { vertical: "middle", horizontal: opts.align || "center", wrapText: true,
+      indent: opts.align === "left" ? 1 : 0 };
+    cell.border = {
+      bottom: line(PEN.seafoam, "medium"),
+      left: line(PEN.white), right: line(PEN.white),
+    };
+  }
+
+  /* A label cell in the gray first column. */
+  function labelCell(cell, text, bold = false) {
+    cell.value = text;
+    cell.font = font({ bold });
+    cell.fill = fill(PEN.label);
+    cell.alignment = { vertical: "middle", indent: 1 };
+    cell.border = { bottom: line(), right: line(PEN.rule) };
   }
 
   /* One value into one cell: links become clickable, numbers keep their
-     format and sit right, Yes and No center. */
-  function putValue(cell, v, z, horizon) {
+     format, everything sits centered the way the book's tables do. */
+  function putValue(cell, v, z) {
+    cell.border = { bottom: line() };
     if (v === null || v === undefined || v === "") { cell.value = null; return; }
     if (typeof v === "string" && /^https?:\/\//.test(v)) {
       cell.value = { text: "Open", hyperlink: v, tooltip: v };
@@ -701,28 +727,26 @@
       return;
     }
     cell.value = v;
-    if (typeof v === "number") {
-      if (z) cell.numFmt = z;
-      cell.alignment = { horizontal: "right", vertical: "middle", indent: 1 };
-    } else if (v === "Yes" || v === "No") {
-      cell.alignment = { horizontal: "center", vertical: "middle" };
-      if (v === "Yes") cell.font = font({ bold: true, color: { argb: PEN.seafoam } });
-    } else {
-      cell.alignment = { vertical: "middle", wrapText: false, indent: 1 };
-    }
-    if (horizon) cell.font = font({ bold: true, color: { argb: horizon } });
+    cell.font = font();
+    if (typeof v === "number" && z) cell.numFmt = z;
+    cell.alignment = { horizontal: "center", vertical: "middle" };
   }
 
-  /* Fit to one page across when the sheet is narrow enough to stay
-     readable, otherwise print at a fixed scale and run onto more pages. */
-  function landscape(ws, repeatRows, fit = true) {
+  /* fit: "page" squeezes onto one page, true fits the width and runs
+     down, false prints at a fixed scale across as many pages as it needs. */
+  function printSetup(ws, repeatRows, fit = true) {
     ws.pageSetup = {
       orientation: "landscape", paperSize: 1,
-      ...(fit ? { fitToPage: true, fitToWidth: 1, fitToHeight: 0 } : { fitToPage: false, scale: 70 }),
-      margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 },
+      ...(fit === "page" ? { fitToPage: true, fitToWidth: 1, fitToHeight: 1 }
+        : fit ? { fitToPage: true, fitToWidth: 1, fitToHeight: 0 } : { fitToPage: false, scale: 70 }),
+      margins: { left: 0.45, right: 0.45, top: 0.55, bottom: 0.55, header: 0.3, footer: 0.3 },
       printTitlesRow: repeatRows,
+      horizontalCentered: true,
     };
-    ws.headerFooter = { oddFooter: `&L&8${entry.name}&R&8Page &P of &N` };
+    ws.headerFooter = {
+      oddFooter: `&L&"${FONT},Regular"&7&K7F7F7F© ${new Date().getFullYear()} GREYSTEEL  |  PROPRIETARY && CONFIDENTIAL INFORMATION`
+        + `&R&"${FONT},Bold"&8&K081937&P`,
+    };
   }
 
   /* -------------------------------------------------------- summary sheet */
@@ -736,86 +760,62 @@
     const w = Atlas.primeWeights();
     const meta = Atlas.meta || {};
     const us = (iso) => (iso && iso.length >= 10 ? `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}` : "");
-    ws.columns = [{ width: 3 }, { width: 30 }, ...Array(5).fill(0).map(() => ({ width: 24 }))];
-    titleBand(ws, entry.name, "USDA Section 515 Property Atlas  ·  Full property export", 7);
-
-    // Who and when.
-    const info = [
-      ["Exported", new Date().toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" })],
-      ["Exported by", Atlas.sessionEmail() || ""],
-      ["Property Characteristics as of", us(meta.property_report_date)],
-      ["Program Exit Data as of", us(meta.exit_report_date)],
+    // Two three-column tables side by side, with a narrow gutter between.
+    ws.columns = [
+      { width: 30 }, { width: 14 }, { width: 14 }, { width: 4 },
+      { width: 30 }, { width: 14 }, { width: 14 },
     ];
-    let r = 4;
-    info.forEach(([k, v]) => {
-      ws.getCell(r, 2).value = k;
-      ws.getCell(r, 2).font = font({ color: { argb: PEN.muted } });
-      ws.mergeCells(r, 3, r, 4);
-      ws.getCell(r, 3).value = v;
-      ws.getCell(r, 3).font = font({ bold: true });
-      r += 1;
-    });
+    let r = pageHead(ws, "Portfolio Summary", entry.name, 7);
 
-    // Six figure tiles, the same six the portfolio page shows.
-    r += 1;
+    // The headline figures, set the way the book's "By the Numbers" page is:
+    // a large seafoam figure over a small bold caption.
     const tiles = [
-      ["Properties", s.properties, "#,##0"],
-      ["Total units", s.units, "#,##0"],
-      ["Rental assistance units", s.ra, "#,##0"],
-      ["RA share of units", s.raShare === null ? "" : s.raShare, "0%"],
-      ["Average property size", s.avgSize, "#,##0"],
-      ["Exiting within 10 years", s.exiting, "#,##0"],
+      ["PROPERTIES", s.properties, "#,##0"],
+      ["TOTAL UNITS", s.units, "#,##0"],
+      ["RENTAL ASSISTANCE UNITS", s.ra, "#,##0"],
+      ["RA SHARE OF UNITS", s.raShare === null ? "" : s.raShare, "0%"],
+      ["AVERAGE PROPERTY SIZE", s.avgSize, "#,##0"],
+      ["EXITING WITHIN 10 YEARS", s.exiting, "#,##0"],
     ];
-    tiles.forEach(([k, v, z], i) => {
-      const c = 2 + i;
-      const accent = i === 5 ? PEN.sorbet : PEN.seafoam;
-      const lab = ws.getCell(r, c);
-      lab.value = k.toUpperCase();
-      lab.font = font({ size: 8, bold: true, color: { argb: PEN.muted } });
-      lab.fill = fill(PEN.band);
-      lab.border = { top: { style: "medium", color: { argb: accent } }, left: hair(), right: hair() };
-      lab.alignment = { indent: 1, vertical: "bottom" };
-      const val = ws.getCell(r + 1, c);
-      val.value = v;
-      val.numFmt = z;
-      val.font = font({ size: 20, bold: true, color: { argb: PEN.navy } });
-      val.fill = fill(PEN.band);
-      val.border = { bottom: hair(), left: hair(), right: hair() };
-      val.alignment = { indent: 1, horizontal: "left", vertical: "middle" };
+    // Three across, two rows, so each figure has room. [first column, span]
+    const slots = [[1, 1], [2, 3], [5, 3]];
+    [[0, 1, 2], [3, 4, 5]].forEach((set, k) => {
+      const vr = r + k * 3;
+      set.forEach((t, j) => {
+        const [c0, span] = slots[j];
+        ws.mergeCells(vr, c0, vr, c0 + span - 1);
+        ws.mergeCells(vr + 1, c0, vr + 1, c0 + span - 1);
+        const val = ws.getCell(vr, c0);
+        val.value = tiles[t][1];
+        val.numFmt = tiles[t][2];
+        val.font = font({ size: 24, color: { argb: PEN.seafoam } });
+        val.alignment = { horizontal: "left", vertical: "bottom" };
+        const cap = ws.getCell(vr + 1, c0);
+        cap.value = tiles[t][0];
+        cap.font = font({ size: 8, bold: true });
+        cap.alignment = { horizontal: "left", vertical: "top" };
+      });
+      ws.getRow(vr).height = 32;
+      ws.getRow(vr + 1).height = 16;
+      ws.getRow(vr + 2).height = 8;
     });
-    ws.getRow(r).height = 22;
-    ws.getRow(r + 1).height = 34;
-    r += 3;
-    if (s.missing > 0) {
-      ws.mergeCells(r, 2, r, 7);
-      ws.getCell(r, 2).value = `${s.missing} saved ${s.missing === 1 ? "property is" : "properties are"} no longer in the current USDA build and ${s.missing === 1 ? "is" : "are"} listed at the foot of this sheet.`;
-      ws.getCell(r, 2).font = font({ italic: true, color: { argb: PEN.sorbet } });
-      r += 2;
-    }
+    r += 7;
 
-    // A small table: section title, navy header, banded rows, a total.
+    // A small book-style table: navy title bar, slate headings, gray labels.
     const table = (col, row0, title, head, rows, fmts, total) => {
       let rr = row0;
-      const span = head.length;
-      ws.mergeCells(rr, col, rr, col + span - 1);
-      const t = ws.getCell(rr, col);
-      t.value = title;
-      t.font = font({ size: 11, bold: true, color: { argb: PEN.seafoam } });
-      t.border = { bottom: { style: "medium", color: { argb: PEN.seafoam } } };
-      for (let c = col + 1; c < col + span; c++) ws.getCell(rr, c).border = { bottom: { style: "medium", color: { argb: PEN.seafoam } } };
+      titleBar(ws, rr, col, head.length, title);
       rr += 1;
-      head.forEach((h, i) => headCell(ws.getCell(rr, col + i), h, { align: i ? "right" : undefined }));
+      head.forEach((h, i) => headCell(ws.getCell(rr, col + i), h, { align: i ? "center" : "left" }));
+      ws.getRow(rr).height = 18;
       rr += 1;
-      rows.forEach((vals, n) => {
+      rows.forEach((vals) => {
         vals.forEach((v, i) => {
           const cell = ws.getCell(rr, col + i);
-          cell.value = v;
-          cell.font = font();
-          if (fmts[i]) cell.numFmt = fmts[i];
-          cell.alignment = i ? { horizontal: "right", indent: 1 } : { indent: 1 };
-          if (n % 2) cell.fill = fill(PEN.band);
-          cell.border = { bottom: hair() };
+          if (i === 0) { labelCell(cell, v); return; }
+          putValue(cell, v, fmts[i]);
         });
+        ws.getRow(rr).height = 17;
         rr += 1;
       });
       if (total) {
@@ -824,93 +824,100 @@
           cell.value = v;
           cell.font = font({ bold: true });
           if (fmts[i]) cell.numFmt = fmts[i];
-          cell.alignment = i ? { horizontal: "right", indent: 1 } : { indent: 1 };
-          cell.border = { top: { style: "thin", color: { argb: PEN.navy } } };
+          cell.alignment = i ? { horizontal: "center" } : { indent: 1 };
+          cell.border = { top: line(PEN.ink), bottom: line() };
         });
         rr += 1;
       }
       return rr;
     };
 
+    const info = [
+      ["Exported", new Date().toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" })],
+      ["Exported by", Atlas.sessionEmail() || ""],
+      ["Property Characteristics as of", us(meta.property_report_date)],
+      ["Program Exit Data as of", us(meta.exit_report_date)],
+    ];
     const tallyRows = (label) => tally(null, label).map(([k, v]) => [k, v.n, v.units]);
     const tot = ["Total", s.properties, s.units];
     const f3 = [null, "#,##0", "#,##0"];
 
-    // Two columns of tables, so the sheet fits on a landscape page.
-    let left = table(2, r, "By state", ["State", "Properties", "Units"],
+    // Left column of tables.
+    let left = r;
+    titleBar(ws, left, 1, 3, "Export Details");
+    left += 1;
+    info.forEach(([k, v]) => {
+      labelCell(ws.getCell(left, 1), k, true);
+      ws.mergeCells(left, 2, left, 3);
+      putValue(ws.getCell(left, 2), v);
+      ws.getCell(left, 3).border = { bottom: line() };
+      left += 1;
+    });
+    left = table(1, left + 1, "By State", ["State", "Properties", "Units"],
       tallyRows((x) => (x.state ? (Atlas.STATE_NAMES[x.state] || x.state) : "")), f3, tot);
-    let right = table(5, r, "By exit horizon", ["Exit year", "Properties", "Units"],
-      tallyRows((x) => Atlas.horizonLabel(x.exit_year)), f3, tot);
-    left = table(2, left + 1, "By management", ["Management agent", "Properties", "Units"],
+    left = table(1, left + 1, "By Management", ["Management Agent", "Properties", "Units"],
       tallyRows((x) => tc(x.management) || "Not stated"), f3, tot);
-    right = table(5, right + 1, "Prime Score weights used", ["Factor", "", "Weight"],
-      Atlas.PRIME_FACTORS.map(({ key, label }) => [label, "", w[key]]), [null, null, "0"], null);
-    let foot = Math.max(left, right) + 1;
 
-    ws.mergeCells(foot, 2, foot, 7);
-    const note = ws.getCell(foot, 2);
-    note.value = "Prime Score ranks each property against USDA's whole portfolio, so it shifts a little "
+    // Right column of tables.
+    let right = table(5, r, "By Exit Horizon", ["Exit Year", "Properties", "Units"],
+      tallyRows((x) => Atlas.horizonLabel(x.exit_year)), f3, tot);
+    right = table(5, right + 1, "Prime Score Weights", ["Factor", "Weight"],
+      Atlas.PRIME_FACTORS.map(({ key, label }) => [label, w[key]]), [null, "0"], null);
+
+    let foot = Math.max(left, right) + 1;
+    ws.mergeCells(foot, 1, foot, 7);
+    const note = ws.getCell(foot, 1);
+    note.value = "*Prime Score ranks each property against USDA's whole portfolio, so it shifts a little "
       + "with every data refresh. The Properties sheet carries every field in one row per property. "
       + "Property Detail shows the same fields down the side, one column per property.";
-    note.font = font({ size: 9, italic: true, color: { argb: PEN.muted } });
+    note.font = font({ size: 8.5 });
     note.alignment = { wrapText: true, vertical: "top" };
-    ws.getRow(foot).height = 40;
+    ws.getRow(foot).height = 30;
 
     if (s.missing > 0) {
       const have = new Set(records.map((x) => String(x.id)));
-      foot += 2;
-      foot = table(2, foot, "Saved ids not in the current build", ["MFIS project key"],
+      foot = table(1, foot + 2, "Saved IDs Not in the Current Build", ["MFIS Project Key"],
         entry.ids.filter((id) => !have.has(String(id))).map((id) => [id]), [null], null);
     }
-    landscape(ws, null);
+    printSetup(ws, null, "page");
     return ws;
   }
 
   /* ----------------------------------------------------- properties sheet */
 
-  function propertiesSheet(wb, groups, full, primes, horizons) {
+  function propertiesSheet(wb, groups, full, primes) {
     const flat = groups.flatMap((g) => g.fields.map((f) => ({ group: g.title, label: f[0], get: f[1], z: f[2] })));
     const ws = wb.addWorksheet("Properties", {
       properties: { tabColor: { argb: PEN.seafoam } },
-      views: [{ state: "frozen", xSplit: 1, ySplit: 4, showGridLines: false }],
+      views: [{ state: "frozen", xSplit: 1, ySplit: 6, showGridLines: false }],
     });
-    titleBand(ws, `${entry.name}  ·  Properties`,
-      `${full.length} ${full.length === 1 ? "property" : "properties"}, every field on the property page, one row each`,
-      Math.min(flat.length, 12));
+    pageHead(ws, "Properties",
+      `${entry.name}  |  ${full.length} ${full.length === 1 ? "property" : "properties"}, every field on the property page`,
+      Math.min(flat.length, 10));
 
-    // Row 3: the section each column belongs to, merged across its columns.
+    // Row 5: navy group bars over their columns, the way the book heads
+    // "Year Ending" and "T-12" over their pairs of columns.
     let c = 1;
-    groups.forEach((g, gi) => {
+    groups.forEach((g) => {
       const span = g.fields.length;
-      if (span > 1) ws.mergeCells(3, c, 3, c + span - 1);
-      const cell = ws.getCell(3, c);
-      cell.value = g.title;
-      const argb = gi % 2 ? PEN.seafoam : "FF2F6A6E";
+      titleBar(ws, 5, c, span, g.title);
       for (let k = c; k < c + span; k++) {
-        ws.getCell(3, k).fill = fill(argb);
-        ws.getCell(3, k).border = { left: k === c ? hair(PEN.white) : undefined };
+        ws.getCell(5, k).border = { left: k === c ? line(PEN.white) : undefined, right: k === c + span - 1 ? line(PEN.white) : undefined };
       }
-      cell.font = font({ size: 9, bold: true, color: { argb: PEN.white } });
-      cell.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
       c += span;
     });
-    ws.getRow(3).height = 18;
 
-    // Row 4: the column headings.
-    flat.forEach((f, i) => headCell(ws.getCell(4, i + 1), f.label,
-      { align: f.z ? "right" : undefined }));
-    ws.getRow(4).height = 42;
+    // Row 6: the column headings.
+    flat.forEach((f, i) => headCell(ws.getCell(6, i + 1), f.label, { align: i === 0 ? "left" : "center" }));
+    ws.getRow(6).height = 42;
 
-    const exitCol = flat.findIndex((f) => f.label === "Estimated exit year");
     full.forEach((d, n) => {
-      const row = ws.getRow(5 + n);
+      const row = ws.getRow(7 + n);
       flat.forEach((f, i) => {
         const cell = row.getCell(i + 1);
-        cell.font = font(i === 0 ? { bold: true, color: { argb: PEN.navy } } : {});
-        putValue(cell, f.get(d, primes[n]), f.z,
-          i === exitCol ? horizons[Atlas.horizonClass(d.exit_year)] : null);
-        if (n % 2) cell.fill = fill(PEN.band);
-        cell.border = { bottom: hair() };
+        const v = f.get(d, primes[n]);
+        if (i === 0) labelCell(cell, v, true);
+        else putValue(cell, v, f.z);
       });
       row.height = 18;
     });
@@ -919,24 +926,26 @@
     const sumLabels = new Set(["Total units", "Rental assistance units", "Vacant units", "Occupied units",
       "Accessible units", "Contract units", "Annual fee ceiling", "Loan amount (source)",
       "1 BR units", "2 BR units", "3 BR units", "4 BR units", "5 BR units", "6 BR units"]);
-    const tr = 5 + full.length;
+    const first = 7;
+    const tr = first + full.length;
     if (full.length) {
       flat.forEach((f, i) => {
         const cell = ws.getCell(tr, i + 1);
-        cell.border = { top: { style: "thin", color: { argb: PEN.navy } } };
+        cell.border = { top: line(PEN.ink) };
         cell.font = font({ bold: true });
+        cell.alignment = { horizontal: "center" };
         const col = ws.getColumn(i + 1).letter;
-        if (i === 0) cell.value = `Total (${full.length})`;
-        else if (sumLabels.has(f.label)) {
-          cell.value = { formula: `SUM(${col}5:${col}${tr - 1})` };
+        if (i === 0) {
+          cell.value = `Total (${full.length})`;
+          cell.alignment = { indent: 1 };
+        } else if (sumLabels.has(f.label)) {
+          cell.value = { formula: `SUM(${col}${first}:${col}${tr - 1})` };
           cell.numFmt = f.z || "#,##0";
-          cell.alignment = { horizontal: "right" };
         } else if (f.label === "RA share of units") {
           const u = ws.getColumn(flat.findIndex((x) => x.label === "Total units") + 1).letter;
           const ra = ws.getColumn(flat.findIndex((x) => x.label === "Rental assistance units") + 1).letter;
-          cell.value = { formula: `IFERROR(SUM(${ra}5:${ra}${tr - 1})/SUM(${u}5:${u}${tr - 1}),"")` };
+          cell.value = { formula: `IFERROR(SUM(${ra}${first}:${ra}${tr - 1})/SUM(${u}${first}:${u}${tr - 1}),"")` };
           cell.numFmt = "0%";
-          cell.alignment = { horizontal: "right" };
         }
       });
     }
@@ -953,78 +962,64 @@
       ws.getColumn(i + 1).width = wch;
     });
 
-    ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4 + full.length, column: flat.length } };
-    landscape(ws, "4:4", false);
+    ws.autoFilter = { from: { row: 6, column: 1 }, to: { row: 6 + full.length, column: flat.length } };
+    printSetup(ws, "5:6", false);
     return ws;
   }
 
   /* ------------------------------------------------- property detail sheet */
 
-  function detailSheet(wb, groups, full, primes, horizons) {
+  function detailSheet(wb, groups, full, primes) {
     const ws = wb.addWorksheet("Property Detail", {
-      properties: { tabColor: { argb: PEN.sorbet } },
-      views: [{ state: "frozen", xSplit: 1, ySplit: 3, showGridLines: false }],
+      properties: { tabColor: { argb: PEN.slate } },
+      views: [{ state: "frozen", xSplit: 1, ySplit: 5, showGridLines: false }],
     });
     const width = 1 + full.length;
     ws.getColumn(1).width = 36;
     for (let c = 2; c <= width; c++) ws.getColumn(c).width = 24;
-    titleBand(ws, `${entry.name}  ·  Property Detail`,
-      "The property page, one column per property", Math.max(2, Math.min(width, 8)));
+    pageHead(ws, "Property Detail", `${entry.name}  |  The property page, one column per property`,
+      Math.max(2, Math.min(width, 6)));
 
-    headCell(ws.getCell(3, 1), "Field");
+    headCell(ws.getCell(5, 1), "", { align: "left" });
     full.forEach((d, i) => {
-      headCell(ws.getCell(3, 2 + i), tc(d.name), { align: "center" });
-      ws.getCell(3, 2 + i).value = {
+      const cell = ws.getCell(5, 2 + i);
+      headCell(cell, tc(d.name));
+      cell.value = {
         text: tc(d.name),
         hyperlink: new URL(`detail.html?id=${encodeURIComponent(d.id)}`, location.href).toString(),
         tooltip: "Open the property page in the atlas",
       };
-      ws.getCell(3, 2 + i).font = font({ bold: true, size: 9.5, color: { argb: PEN.white } });
+      cell.font = font({ size: 10, color: { argb: PEN.white } });
     });
-    ws.getRow(3).height = 40;
+    ws.getRow(5).height = 36;
 
-    let r = 4;
+    let r = 6;
     groups.forEach((g) => {
-      // Section band.
-      for (let c = 1; c <= width; c++) {
-        const cell = ws.getCell(r, c);
-        cell.fill = fill(PEN.paleSea);
-        cell.border = { top: { style: "thin", color: { argb: PEN.seafoam } } };
-      }
+      // Navy section bar, set in bold capitals like "GENERAL INFORMATION".
+      for (let c = 1; c <= width; c++) ws.getCell(r, c).fill = fill(PEN.navy);
       const sec = ws.getCell(r, 1);
       sec.value = g.title.toUpperCase();
-      sec.font = font({ size: 9, bold: true, color: { argb: PEN.seafoam } });
+      sec.font = font({ size: 10, bold: true, color: { argb: PEN.white } });
       sec.alignment = { indent: 1, vertical: "middle" };
-      ws.getRow(r).height = 20;
+      ws.getRow(r).height = 19;
       r += 1;
 
-      g.fields.forEach(([lab, get, z], n) => {
-        const head = ws.getCell(r, 1);
-        head.value = lab;
-        head.font = font({ color: { argb: PEN.muted } });
-        head.alignment = { indent: 2, vertical: "middle" };
-        head.border = { bottom: hair() };
-        if (n % 2) head.fill = fill(PEN.band);
+      g.fields.forEach(([lab, get, z]) => {
+        labelCell(ws.getCell(r, 1), lab, true);
         full.forEach((d, i) => {
           const cell = ws.getCell(r, 2 + i);
-          cell.font = font();
-          putValue(cell, get(d, primes[i]), z,
-            lab === "Estimated exit year" ? horizons[Atlas.horizonClass(d.exit_year)] : null);
-          if (typeof cell.value === "string" && cell.alignment && !cell.alignment.horizontal) {
-            cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
-          } else if (typeof cell.value === "number") {
-            cell.alignment = { horizontal: "center", vertical: "middle" };
-          }
+          putValue(cell, get(d, primes[i]), z);
+          if (cell.alignment) cell.alignment = { ...cell.alignment, wrapText: true };
           if (lab === "Prime Score" && typeof cell.value === "number") {
-            cell.font = font({ size: 12, bold: true, color: { argb: PEN.navy } });
+            cell.font = font({ bold: true });
           }
-          cell.border = { bottom: hair() };
-          if (n % 2) cell.fill = fill(PEN.band);
         });
         r += 1;
       });
+      ws.getRow(r).height = 8;
+      r += 1;
     });
-    landscape(ws, "3:3", full.length <= 6);
+    printSetup(ws, "5:5", full.length <= 6);
     return ws;
   }
 
@@ -1048,15 +1043,14 @@
       const groups = fieldGroups();
       const extras = extraFields(full, groups);
       if (extras.length) groups.push({ title: "Other fields in the data", uses: [], fields: extras });
-      const horizons = horizonArgb();
 
       const wb = new ExcelJS.Workbook();
       wb.creator = Atlas.sessionEmail() || "USDA Section 515 Property Atlas";
       wb.title = entry.name;
       wb.created = new Date();
       summarySheet(wb, full);
-      propertiesSheet(wb, groups, full, primes, horizons);
-      detailSheet(wb, groups, full, primes, horizons);
+      propertiesSheet(wb, groups, full, primes);
+      detailSheet(wb, groups, full, primes);
 
       const buf = await wb.xlsx.writeBuffer();
       const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
