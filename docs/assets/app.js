@@ -1078,6 +1078,97 @@ const Atlas = (() => {
     }
   }
 
+  /* ----------------------------------------------------- saved portfolios
+
+     A selection is worth naming. Five properties picked out of twelve
+     thousand is a piece of work, and losing it when the tab closes is the
+     difference between a tool and a toy.
+
+     These live in localStorage rather than the session, so they survive the
+     browser closing. That makes them per browser and per machine: a portfolio
+     saved on a laptop is not on a phone, and a colleague cannot see it. The
+     share link below is the answer to that for now, and the seam for moving
+     the store behind the Worker later is deliberately narrow, which is
+     listPortfolios, savePortfolio and removePortfolio. Nothing else in the
+     app touches the storage. */
+
+  const PORTFOLIO_KEY = "atlas.portfolios";
+  const PORTFOLIO_LIMIT = 40;
+
+  function listPortfolios() {
+    try {
+      const raw = localStorage.getItem(PORTFOLIO_KEY);
+      const list = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(list)) return [];
+      return list.filter((p) => p && p.name && Array.isArray(p.ids));
+    } catch (e) { return []; }
+  }
+
+  function writePortfolios(list) {
+    try {
+      localStorage.setItem(PORTFOLIO_KEY, JSON.stringify(list.slice(0, PORTFOLIO_LIMIT)));
+      return true;
+    } catch (e) {
+      // Storage disabled or full. Saying so beats a button that silently does
+      // nothing, so the caller gets the failure back.
+      return false;
+    }
+  }
+
+  /* Saving the same name twice replaces it rather than leaving two entries
+     that differ only in what they hold, which is how a saved list turns into
+     a junk drawer. */
+  function savePortfolio(name, ids) {
+    const clean = String(name || "").trim();
+    if (!clean) return null;
+    const list = listPortfolios().filter((p) => p.name.toLowerCase() !== clean.toLowerCase());
+    const entry = {
+      name: clean,
+      ids: [...new Set((ids || []).map(String))],
+      savedAt: new Date().toISOString(),
+    };
+    list.unshift(entry);
+    return writePortfolios(list) ? entry : null;
+  }
+
+  function removePortfolio(name) {
+    const clean = String(name || "").trim().toLowerCase();
+    writePortfolios(listPortfolios().filter((p) => p.name.toLowerCase() !== clean));
+  }
+
+  /* A saved portfolio is a fixed list, so loading it has to mean "show exactly
+     these". Leaving a state or unit filter in place would hide half of what
+     was just loaded and look like data loss, so the filters come off. */
+  function loadPortfolio(name) {
+    const hit = listPortfolios().find(
+      (p) => p.name.toLowerCase() === String(name || "").trim().toLowerCase());
+    if (!hit) return null;
+    clearFilters();
+    try { sessionStorage.setItem(SELECTION_KEY, JSON.stringify(hit.ids)); } catch (e) {}
+    setOnlySelected(true);
+    return hit;
+  }
+
+  /* Portfolios do not sync between machines, so a link is how one reaches a
+     colleague. The ids are the whole payload; the atlas resolves them. */
+  function portfolioLink(entry) {
+    const u = new URL("index.html", location.href);
+    u.searchParams.set("portfolio", entry.name);
+    u.searchParams.set("sel", entry.ids.join(","));
+    return u.toString();
+  }
+
+  function portfolioFromUrl() {
+    const q = new URLSearchParams(location.search);
+    const sel = q.get("sel");
+    if (!sel) return null;
+    const ids = sel.split(",").map((x) => x.trim()).filter(Boolean);
+    if (!ids.length) return null;
+    return { name: q.get("portfolio") || "Shared selection", ids };
+  }
+
+  let clearFilters = () => {};
+
   /* The page hands its own repaint to buildFilterBar. Holding on to it lets
      anything that changes a filter outside the bar, such as the selection
      tray, redraw the page without each page exporting its own hook. */
@@ -1237,13 +1328,19 @@ const Atlas = (() => {
     root.querySelectorAll('#filterbar input[type="search"], #filterbar input[type="number"]')
       .forEach((el) => el.addEventListener("input", fire));
 
-    root.querySelector("#f-reset")?.addEventListener("click", () => {
+    /* Shared with loadPortfolio, which needs the same reset without the
+       side effect of turning the selected-only view off. */
+    clearFilters = () => {
       Object.values(FIELDS).forEach((f) => f.clear());
       root.querySelectorAll('#filterbar input[type="search"], #filterbar input[type="number"]')
         .forEach((el) => { el.value = ""; });
-      setOnlySelected(false);
       clearStoredFilters();
       paintClear();
+    };
+
+    root.querySelector("#f-reset")?.addEventListener("click", () => {
+      clearFilters();
+      setOnlySelected(false);
       paintSelectionBanner(root);
       onChange();
     });
@@ -1451,6 +1548,9 @@ const Atlas = (() => {
     primeWeights, setPrimeWeights, primeScore, primeBreakdown,
     saveFilters, storedFilters, clearStoredFilters,
     selectionIds, onlySelected, setOnlySelected, paintSelectionBanner, refreshView,
+    listPortfolios, savePortfolio, removePortfolio, loadPortfolio,
+    portfolioLink, portfolioFromUrl,
+    clearFilters: () => clearFilters(),
     HAP_DB_URL, hapDeepLink,
     dataUrl, fetchData, download, esc, signInUrl, promptSignIn,
     get index() { return index; },

@@ -500,6 +500,7 @@
         <span class="seltray-acts">
           <input type="text" id="sel-name" class="btn" autocomplete="off"
                  aria-label="Portfolio name for the export">
+          <button class="btn" id="sel-save" type="button">Save</button>
           <button class="btn" id="sel-only" type="button" aria-pressed="false">Show selected only</button>
           <button class="btn" id="sel-clear" type="button">Clear all</button>
           <button class="btn primary" id="sel-export" type="button">Export selected</button>
@@ -530,6 +531,22 @@
       paintTray();
       Atlas.refreshView();
     });
+    $("sel-save").addEventListener("click", () => {
+      const rows = selectedRecords();
+      const el = $("sel-name");
+      /* The field already carries a derived default as its placeholder, so an
+         untouched field still saves under a sensible name. */
+      const name = ((el && el.value) || "").trim() || defaultName(rows);
+      const entry = Atlas.savePortfolio(name, [...ids]);
+      if (!entry) {
+        paintTray("Could not save. Browser storage is full or turned off.");
+        return;
+      }
+      if (el) el.value = entry.name;
+      paintSaved();
+      paintTray(`Saved as "${entry.name}".`);
+    });
+
     $("sel-export").addEventListener("click", exportSelected);
   }
 
@@ -588,6 +605,87 @@
     }
 
     measureTray();
+  }
+
+  /* ------------------------------------------------------- saved portfolios
+
+     The tray only exists while something is selected, so the saved list
+     cannot live in it. It sits above the filters where it is visible on an
+     empty page, which is exactly when someone wants to pick one up again. */
+
+  function savedHost() {
+    let host = $("saved-bar");
+    if (host) return host;
+    const anchor = $("mgmt-banner");
+    if (!anchor || !anchor.parentNode) return null;
+    host = document.createElement("div");
+    host.className = "savedbar";
+    host.id = "saved-bar";
+    host.hidden = true;
+    anchor.parentNode.insertBefore(host, anchor);
+    return host;
+  }
+
+  function paintSaved() {
+    const host = savedHost();
+    if (!host) return;
+    const list = Atlas.listPortfolios();
+    if (!list.length) { host.hidden = true; host.innerHTML = ""; return; }
+
+    host.hidden = false;
+    host.innerHTML =
+      `<span class="savedbar-label">Saved portfolios</span>` +
+      list.map((p) => {
+        const when = new Date(p.savedAt).toLocaleDateString("en-US",
+          { month: "short", day: "numeric", year: "numeric" });
+        const n = p.ids.length;
+        return `<span class="savedchip">
+            <button type="button" class="savedchip-open" data-name="${Atlas.esc(p.name)}"
+                    title="Saved ${Atlas.esc(when)}. Loads these ${n} propert${n === 1 ? "y" : "ies"} and clears the other filters.">
+              ${Atlas.esc(p.name)} <b>${n}</b>
+            </button>
+            <button type="button" class="savedchip-link" data-name="${Atlas.esc(p.name)}"
+                    title="Copy a link to this portfolio">link</button>
+            <button type="button" class="savedchip-del" data-name="${Atlas.esc(p.name)}"
+                    aria-label="Delete ${Atlas.esc(p.name)}" title="Delete">&times;</button>
+          </span>`;
+      }).join("");
+
+    host.querySelectorAll(".savedchip-open").forEach((b) => {
+      b.addEventListener("click", () => {
+        const hit = Atlas.loadPortfolio(b.dataset.name);
+        if (!hit) return;
+        ids = new Set(hit.ids.map(String));
+        lastClickedRow = null;
+        writeStored();
+        Atlas.refreshView();
+        paintTray(`Loaded "${hit.name}".`);
+      });
+    });
+
+    host.querySelectorAll(".savedchip-link").forEach((b) => {
+      b.addEventListener("click", async () => {
+        const hit = Atlas.listPortfolios().find((p) => p.name === b.dataset.name);
+        if (!hit) return;
+        const url = Atlas.portfolioLink(hit);
+        try {
+          await navigator.clipboard.writeText(url);
+          b.textContent = "copied";
+        } catch (e) {
+          // Clipboard is blocked outside a secure context, so fall back to
+          // something the person can still copy by hand.
+          window.prompt("Copy this link", url);
+        }
+        setTimeout(() => { b.textContent = "link"; }, 1600);
+      });
+    });
+
+    host.querySelectorAll(".savedchip-del").forEach((b) => {
+      b.addEventListener("click", () => {
+        Atlas.removePortfolio(b.dataset.name);
+        paintSaved();
+      });
+    });
   }
 
   /* The tray is fixed, and its height changes with the viewport and with
@@ -867,12 +965,33 @@
     buildTray();
     Atlas.load().then(() => {
       byId = new Map(Atlas.index.map((r) => [String(r.id), r]));
+
+      /* A shared link carries the portfolio in the query string. It takes
+         precedence over whatever was in this tab, because following a link
+         and landing on your own earlier selection would be baffling. */
+      const shared = Atlas.portfolioFromUrl();
+      if (shared) {
+        Atlas.clearFilters();
+        ids = new Set(shared.ids.map(String));
+        const el = $("sel-name");
+        if (el) el.value = shared.name;
+      }
+
       // Anything held over from an earlier data build that no longer exists.
       [...ids].forEach((id) => { if (!byId.has(id)) ids.delete(id); });
       writeStored();
+
+      /* The selected-only flag refuses to switch on over an empty stored
+         selection, which a fresh tab always has, so it has to follow
+         writeStored rather than lead it. */
+      if (shared) {
+        Atlas.setOnlySelected(true);
+        Atlas.refreshView();   // the table already drew before this ran
+      }
       watch();
       decorate();
-      paintTray();
+      paintSaved();
+      paintTray(shared ? `Opened "${shared.name}" from a shared link.` : undefined);
     }).catch(() => {});
   }
 

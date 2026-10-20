@@ -120,3 +120,60 @@ body.has-selection main { padding-bottom: calc(60px + var(--seltray-h, 0px)); }
 }
 
 .seltray .btn.on:hover { background: #0d2650; border-color: #0d2650; }
+
+/* ------------------------------------------------------- saved portfolios */
+
+/* Sits above the filters so it is reachable on an empty page, which is when
+   someone is most likely to want one back. */
+.savedbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.savedbar[hidden] { display: none; }
+
+.savedbar-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted, #5A5C65);
+  margin-right: 2px;
+}
+
+.savedchip {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid #c9dedd;
+  background: #eef5f5;
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+.savedchip button {
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  padding: 5px 9px;
+}
+
+.savedchip-open { font-weight: 600; color: var(--navy, #081937); }
+.savedchip-open b { font-weight: 700; opacity: .55; margin-left: 3px; }
+.savedchip-open:hover { background: #dceaea; }
+
+.savedchip-link,
+.savedchip-del {
+  border-left: 1px solid #c9dedd !important;
+  color: var(--muted, #5A5C65);
+}
+
+.savedchip-link { font-size: 11.5px; }
+.savedchip-del { font-size: 15px; line-height: 1; padding-inline: 8px; }
+.savedchip-link:hover,
+.savedchip-del:hover { background: #dceaea; color: var(--navy, #081937); }
