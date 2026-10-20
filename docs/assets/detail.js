@@ -5,6 +5,65 @@
   const $ = (id) => document.getElementById(id);
   const MILES_SHOWN = 25;
   const MAX_NEIGHBORS = 60;
+  const PF_RETURN_KEY = "atlas.pfReturn";
+
+  /* Where the reader came from. A property opened from a portfolio carries
+     from=portfolio and pf=<name>, and that context rides along on every
+     neighbor link so the way back survives a hop to the property next door. */
+  const params = new URLSearchParams(location.search);
+  const from = params.get("from");
+  const pfName = params.get("pf");
+  const ctx = (() => {
+    const q = new URLSearchParams();
+    if (from === "map") q.set("from", "map");
+    if (from === "portfolio") {
+      q.set("from", "portfolio");
+      if (pfName) q.set("pf", pfName);
+    }
+    const s = q.toString();
+    return s ? "&" + s : "";
+  })();
+  const detailHref = (id) => `detail.html?id=${encodeURIComponent(id)}${ctx}`;
+
+  /* The portfolio page records its own address on the way out, which is the
+     only way back to a portfolio that arrived on a share link and was never
+     saved. A saved one can always be found again by name. */
+  function portfolioReturn() {
+    let stored = null;
+    try { stored = sessionStorage.getItem(PF_RETURN_KEY); } catch (e) {}
+    if (stored) {
+      try {
+        const u = new URL(stored, location.href);
+        const name = u.searchParams.get("name") || u.searchParams.get("portfolio");
+        if (u.origin === location.origin && /portfolio\.html$/.test(u.pathname)
+            && (!pfName || (name || "").toLowerCase() === pfName.toLowerCase())) {
+          return u.pathname.split("/").pop() + u.search;
+        }
+      } catch (e) { /* malformed, fall through */ }
+    }
+    return pfName ? `portfolio.html?name=${encodeURIComponent(pfName)}` : "portfolios.html";
+  }
+
+  function paintBackLink() {
+    const link = $("backlink");
+    if (from === "map") {
+      link.setAttribute("href", "map.html");
+      link.textContent = "← Back to the map";
+      return;
+    }
+    if (from === "portfolio") {
+      link.setAttribute("href", portfolioReturn());
+      link.textContent = "← Back to the portfolio";
+      if (pfName) {
+        const tag = document.createElement("span");
+        tag.className = "backname";
+        tag.textContent = pfName;
+        link.after(tag);
+      }
+      $("nav-portfolios")?.classList.add("active");
+    }
+  }
+  paintBackLink();
 
   /** Great-circle distance in miles. Good enough at this scale. */
   function milesBetween(a, b) {
@@ -56,7 +115,7 @@
 
     if (!isSubject) {
       marker.on("click", () => {
-        location.href = `detail.html?id=${encodeURIComponent(record.id)}`;
+        location.href = detailHref(record.id);
       });
     }
     return marker;
@@ -109,7 +168,7 @@
     }
     host.innerHTML = near.slice(0, 12).map((r) => `
       <li>
-        <a href="detail.html?id=${encodeURIComponent(r.id)}">${Atlas.esc(Atlas.titleCase(r.name))}</a>
+        <a href="${detailHref(r.id)}">${Atlas.esc(Atlas.titleCase(r.name))}</a>
         <span class="meta">${Atlas.esc(Atlas.titleCase(r.city))}, ${Atlas.esc(r.state)}
           &middot; ${Atlas.num(r.units)} units
           &middot; <b>${r.miles.toFixed(1)} mi</b></span>
@@ -132,7 +191,7 @@
   }
 
   Atlas.load().then(async () => {
-    const id = new URLSearchParams(location.search).get("id");
+    const id = params.get("id");
     const stub = Atlas.index.find((r) => String(r.id) === String(id));
 
     if (!stub) {
@@ -142,13 +201,6 @@
       $("dbody").innerHTML = "";
       $("minimap").innerHTML = "";
       return;
-    }
-
-    // Coming from the table or the map, the back link should return there.
-    const from = new URLSearchParams(location.search).get("from");
-    if (from === "map") {
-      $("backlink").setAttribute("href", "map.html");
-      $("backlink").textContent = "← Back to the map";
     }
 
     const full = (await Atlas.detail(stub)) || stub;
