@@ -496,13 +496,18 @@
           <span class="fig"><b id="sel-count">0</b> selected</span>
           <span class="fig"><b id="sel-units">0</b> total units</span>
         </span>
-        <span class="seltray-note" id="sel-note"></span>
+        <span class="seltray-note"><span id="sel-note"></span><a
+          id="sel-saved-link" href="portfolios.html" hidden>See all portfolios</a></span>
         <span class="seltray-acts">
-          <input type="text" id="sel-name" class="btn" autocomplete="off"
-                 aria-label="Portfolio name for the export">
-          <button class="btn" id="sel-save" type="button">Save</button>
+          <span class="selname">
+            <input type="text" id="sel-name" autocomplete="off"
+                   aria-label="Portfolio name">
+            <button class="btn" id="sel-save" type="button"
+                    title="Save these properties as a portfolio">Save</button>
+          </span>
+          <span class="selgap"></span>
           <button class="btn" id="sel-only" type="button" aria-pressed="false">Show selected only</button>
-          <button class="btn" id="sel-clear" type="button">Clear all</button>
+          <button class="btn" id="sel-clear" type="button">Clear selection</button>
           <button class="btn primary" id="sel-export" type="button">Export selected</button>
         </span>
       </div>`;
@@ -543,8 +548,9 @@
         return;
       }
       if (el) el.value = entry.name;
-      paintSaved();
       paintTray(`Saved as "${entry.name}".`);
+      const link = $("sel-saved-link");
+      if (link) link.hidden = false;
     });
 
     $("sel-export").addEventListener("click", exportSelected);
@@ -568,9 +574,22 @@
     return `USDA 515 ${when} Portfolio`;
   }
 
+  /* The stored selection is the truth, not this file's copy of it. Loading a
+     portfolio moves the store and then asks the page to repaint, so a repaint
+     that trusted the copy would see an empty selection, decide the
+     selected-only view had nothing left to show and switch it off. */
+  function syncFromStore() {
+    const stored = Atlas.selectionIds();
+    if (stored.size === ids.size && [...stored].every((id) => ids.has(id))) return;
+    ids = stored;
+    lastClickedRow = null;
+    paintRowChecks();
+  }
+
   function paintTray(note) {
     const tray = $("seltray");
     if (!tray) return;
+    syncFromStore();
     const rows = selectedRecords();
     const units = rows.reduce((n, r) => n + (r.units || 0), 0);
 
@@ -605,87 +624,6 @@
     }
 
     measureTray();
-  }
-
-  /* ------------------------------------------------------- saved portfolios
-
-     The tray only exists while something is selected, so the saved list
-     cannot live in it. It sits above the filters where it is visible on an
-     empty page, which is exactly when someone wants to pick one up again. */
-
-  function savedHost() {
-    let host = $("saved-bar");
-    if (host) return host;
-    const anchor = $("mgmt-banner");
-    if (!anchor || !anchor.parentNode) return null;
-    host = document.createElement("div");
-    host.className = "savedbar";
-    host.id = "saved-bar";
-    host.hidden = true;
-    anchor.parentNode.insertBefore(host, anchor);
-    return host;
-  }
-
-  function paintSaved() {
-    const host = savedHost();
-    if (!host) return;
-    const list = Atlas.listPortfolios();
-    if (!list.length) { host.hidden = true; host.innerHTML = ""; return; }
-
-    host.hidden = false;
-    host.innerHTML =
-      `<span class="savedbar-label">Saved portfolios</span>` +
-      list.map((p) => {
-        const when = new Date(p.savedAt).toLocaleDateString("en-US",
-          { month: "short", day: "numeric", year: "numeric" });
-        const n = p.ids.length;
-        return `<span class="savedchip">
-            <button type="button" class="savedchip-open" data-name="${Atlas.esc(p.name)}"
-                    title="Saved ${Atlas.esc(when)}. Loads these ${n} propert${n === 1 ? "y" : "ies"} and clears the other filters.">
-              ${Atlas.esc(p.name)} <b>${n}</b>
-            </button>
-            <button type="button" class="savedchip-link" data-name="${Atlas.esc(p.name)}"
-                    title="Copy a link to this portfolio">link</button>
-            <button type="button" class="savedchip-del" data-name="${Atlas.esc(p.name)}"
-                    aria-label="Delete ${Atlas.esc(p.name)}" title="Delete">&times;</button>
-          </span>`;
-      }).join("");
-
-    host.querySelectorAll(".savedchip-open").forEach((b) => {
-      b.addEventListener("click", () => {
-        const hit = Atlas.loadPortfolio(b.dataset.name);
-        if (!hit) return;
-        ids = new Set(hit.ids.map(String));
-        lastClickedRow = null;
-        writeStored();
-        Atlas.refreshView();
-        paintTray(`Loaded "${hit.name}".`);
-      });
-    });
-
-    host.querySelectorAll(".savedchip-link").forEach((b) => {
-      b.addEventListener("click", async () => {
-        const hit = Atlas.listPortfolios().find((p) => p.name === b.dataset.name);
-        if (!hit) return;
-        const url = Atlas.portfolioLink(hit);
-        try {
-          await navigator.clipboard.writeText(url);
-          b.textContent = "copied";
-        } catch (e) {
-          // Clipboard is blocked outside a secure context, so fall back to
-          // something the person can still copy by hand.
-          window.prompt("Copy this link", url);
-        }
-        setTimeout(() => { b.textContent = "link"; }, 1600);
-      });
-    });
-
-    host.querySelectorAll(".savedchip-del").forEach((b) => {
-      b.addEventListener("click", () => {
-        Atlas.removePortfolio(b.dataset.name);
-        paintSaved();
-      });
-    });
   }
 
   /* The tray is fixed, and its height changes with the viewport and with
@@ -990,7 +928,6 @@
       }
       watch();
       decorate();
-      paintSaved();
       paintTray(shared ? `Opened "${shared.name}" from a shared link.` : undefined);
     }).catch(() => {});
   }

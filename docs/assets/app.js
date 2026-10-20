@@ -1136,6 +1136,23 @@ const Atlas = (() => {
     writePortfolios(listPortfolios().filter((p) => p.name.toLowerCase() !== clean));
   }
 
+  /* Renaming in place keeps the saved date and the position in the list. A
+     name already in use is refused rather than quietly swallowing the other
+     portfolio, which is what saving over it would do. */
+  function renamePortfolio(oldName, newName) {
+    const from = String(oldName || "").trim().toLowerCase();
+    const to = String(newName || "").trim();
+    if (!to) return null;
+    const list = listPortfolios();
+    const hit = list.find((p) => p.name.toLowerCase() === from);
+    if (!hit) return null;
+    const clash = list.find(
+      (p) => p !== hit && p.name.toLowerCase() === to.toLowerCase());
+    if (clash) return null;
+    hit.name = to;
+    return writePortfolios(list) ? hit : null;
+  }
+
   /* A saved portfolio is a fixed list, so loading it has to mean "show exactly
      these". Leaving a state or unit filter in place would hide half of what
      was just loaded and look like data loss, so the filters come off. */
@@ -1144,6 +1161,10 @@ const Atlas = (() => {
       (p) => p.name.toLowerCase() === String(name || "").trim().toLowerCase());
     if (!hit) return null;
     clearFilters();
+    /* clearFilters only reaches a filter bar that exists. Opening a portfolio
+       from the Portfolios tab happens on a page that has none, so the stored
+       filters have to be dropped directly or they come back with the table. */
+    clearStoredFilters();
     try { sessionStorage.setItem(SELECTION_KEY, JSON.stringify(hit.ids)); } catch (e) {}
     setOnlySelected(true);
     return hit;
@@ -1548,7 +1569,7 @@ const Atlas = (() => {
     primeWeights, setPrimeWeights, primeScore, primeBreakdown,
     saveFilters, storedFilters, clearStoredFilters,
     selectionIds, onlySelected, setOnlySelected, paintSelectionBanner, refreshView,
-    listPortfolios, savePortfolio, removePortfolio, loadPortfolio,
+    listPortfolios, savePortfolio, removePortfolio, renamePortfolio, loadPortfolio,
     portfolioLink, portfolioFromUrl,
     clearFilters: () => clearFilters(),
     HAP_DB_URL, hapDeepLink,
