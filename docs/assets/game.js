@@ -19,6 +19,21 @@ window.PrimeChase = (() => {
   const MAX_DOTS = 420;
   const CELL = 16;          // one dot per cell, so dots never sit on top of each other
   const POWER_TIME = 6000;  // ms the Red Tape runs scared
+  const TOP = 30;           // the score bar; the board starts under it
+
+  /* The board wraps on all four sides: run off one edge and come back on the
+     opposite one. Positions wrap, and anything measuring a distance takes the
+     short way round, so the Red Tape follows you through the edge too. */
+  const FH = () => H - TOP;
+  const wrapX = (x) => ((x % W) + W) % W;
+  const wrapY = (y) => TOP + ((((y - TOP) % FH()) + FH()) % FH());
+  function delta(ax, ay, bx, by) {
+    let dx = bx - ax, dy = by - ay;
+    if (dx > W / 2) dx -= W; else if (dx < -W / 2) dx += W;
+    if (dy > FH() / 2) dy -= FH(); else if (dy < -FH() / 2) dy += FH();
+    return [dx, dy];
+  }
+  const dist = (a, b) => Math.hypot(...delta(a.x, a.y, b.x, b.y));
 
   let map = null, host = null, canvas = null, ctx = null, W = 0, H = 0, dpr = 1;
   let running = false, raf = 0, last = 0, keyHandler = null, touchStart = null;
@@ -112,15 +127,15 @@ window.PrimeChase = (() => {
     // Turn as soon as a direction is pressed; the field is open, so any turn is legal.
     if (p.want.x || p.want.y) p.dir = { ...p.want };
     const speed = 2.9;
-    p.x = Math.max(p.r, Math.min(W - p.r, p.x + p.dir.x * speed * dt));
-    p.y = Math.max(p.r + 30, Math.min(H - p.r, p.y + p.dir.y * speed * dt));
+    p.x = wrapX(p.x + p.dir.x * speed * dt);
+    p.y = wrapY(p.y + p.dir.y * speed * dt);
     if (p.dir.x || p.dir.y) p.chomp += 0.25 * dt;
 
     // Dots.
     for (const d of state.dots) {
       if (d.eaten) continue;
       const rr = d.power ? 13 : 10;
-      if ((d.x - p.x) ** 2 + (d.y - p.y) ** 2 < rr * rr) {
+      if (dist(d, p) < rr) {
         d.eaten = true;
         state.left -= 1;
         state.score += d.power ? 50 : 10;
@@ -147,22 +162,23 @@ window.PrimeChase = (() => {
         tx = p.x * 2 - lead.x; ty = p.y * 2 - lead.y;
       } else {
         if (now > c.wander.until || Math.hypot(c.x - c.wander.x, c.y - c.wander.y) < 20) {
-          const close = Math.hypot(c.x - p.x, c.y - p.y) < 160;
+          const close = dist(c, p) < 160;
           c.wander = close ? { x: p.x, y: p.y, until: now + 900 }
             : { x: 30 + Math.random() * (W - 60), y: 60 + Math.random() * (H - 90), until: now + 2200 };
         }
         tx = c.wander.x; ty = c.wander.y;
       }
-      const dx = tx - c.x, dy = ty - c.y;
+      // Toward the target the short way round; scared, straight away from you.
+      let [dx, dy] = scared ? delta(p.x, p.y, c.x, c.y) : delta(c.x, c.y, wrapX(tx), wrapY(ty));
       const len = Math.hypot(dx, dy) || 1;
       const sp = scared ? c.speed * 0.6 : c.speed;
       // Steer rather than snap, so the chase has some give in it.
       c.vx += ((dx / len) * sp - c.vx) * 0.12 * dt;
       c.vy += ((dy / len) * sp - c.vy) * 0.12 * dt;
-      c.x = Math.max(10, Math.min(W - 10, c.x + c.vx * dt));
-      c.y = Math.max(40, Math.min(H - 10, c.y + c.vy * dt));
+      c.x = wrapX(c.x + c.vx * dt);
+      c.y = wrapY(c.y + c.vy * dt);
 
-      if (Math.hypot(c.x - p.x, c.y - p.y) < 18) {
+      if (dist(c, p) < 18) {
         if (scared) {
           state.combo += 1;
           state.score += 200 * state.combo;
@@ -252,14 +268,26 @@ window.PrimeChase = (() => {
 
     const scared = now < state.scaredUntil;
     const blink = scared && state.scaredUntil - now < 1500 && Math.floor(now / 150) % 2 === 0;
-    for (const c of state.chasers) if (!(c.eaten && now < c.eaten)) redTape(c, scared, blink);
+    for (const c of state.chasers) {
+      if (c.eaten && now < c.eaten) continue;
+      echoes(c.x, c.y, 16).forEach(([x, y]) => redTape({ ...c, x, y }, scared, blink));
+    }
 
     const p = state.player;
-    shield(p.x, p.y, p.r * 2.2, C.navy, C.seafoam, p.chomp);
+    echoes(p.x, p.y, p.r * 1.3).forEach(([x, y]) => shield(x, y, p.r * 2.2, C.navy, C.seafoam, p.chomp));
 
     hud(now);
     if (state.phase !== "play") panel();
     else if (now < state.pauseUntil) banner(state.lives < 3 && state.score > 0 ? "Caught by Red Tape" : "Ready");
+  }
+
+  /* A sprite straddling an edge is drawn on both sides, so it slides through
+     instead of popping. */
+  function echoes(x, y, r) {
+    const xs = [x], ys = [y];
+    if (x < r) xs.push(x + W); else if (x > W - r) xs.push(x - W);
+    if (y < TOP + r) ys.push(y + FH()); else if (y > H - r) ys.push(y - FH());
+    return xs.flatMap((ex) => ys.map((ey) => [ex, ey]));
   }
 
   function hud() {
@@ -301,6 +329,7 @@ window.PrimeChase = (() => {
       ["Collect every property in view before the Red Tape catches you.", 14, 500, C.slate],
       ["Big seafoam dots are properties exiting within five years. Grab one", 14, 500, C.slate],
       ["and the Red Tape runs scared for a few seconds. Catch it then.", 14, 500, C.slate],
+      ["Run off any edge to come back on the other side.", 14, 500, C.slate],
       ["Arrow keys or WASD to move. Swipe on a phone. Esc to quit.", 13, 500, C.slate],
       [`${state.left} properties in view · Press Enter or Space to play`, 14, 700, C.seafoam],
     ] : state.phase === "won" ? [
