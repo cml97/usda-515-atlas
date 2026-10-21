@@ -18,7 +18,20 @@ window.PrimeChase = (() => {
   const BEST_KEY = "atlas.primechase.best";
   const MAX_DOTS = 420;
   const CELL = 16;          // one dot per cell, so dots never sit on top of each other
-  const POWER_TIME = 6000;  // ms the Red Tape runs scared
+  const PLAYER_R = 13;      // the shield's drawn radius, and its reach for dots
+  const DOT_R = 3, POWER_R = 6.5;
+
+  /* Five rounds. Each brings one more piece of Red Tape, a little more speed,
+     and a shorter scare when you grab a big dot. */
+  const LEVELS = [
+    { tape: 4, speed: 1.55, power: 6000 },
+    { tape: 5, speed: 1.75, power: 5500 },
+    { tape: 6, speed: 1.95, power: 5000 },
+    { tape: 7, speed: 2.15, power: 4500 },
+    { tape: 8, speed: 2.35, power: 4000 },
+  ];
+  const ROUNDS = LEVELS.length;
+  const lv = (n) => LEVELS[Math.min(n || state.level, ROUNDS) - 1];
   const TOP = 30;           // the score bar; the board starts under it
 
   /* The board wraps on all four sides: run off one edge and come back on the
@@ -34,6 +47,13 @@ window.PrimeChase = (() => {
     return [dx, dy];
   }
   const dist = (a, b) => Math.hypot(...delta(a.x, a.y, b.x, b.y));
+  /* Distance from a point to the segment the shield moved along this frame. */
+  function segDist(px, py, ax, ay, bx, by) {
+    const vx = bx - ax, vy = by - ay;
+    const len2 = vx * vx + vy * vy;
+    const t = len2 ? Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / len2)) : 0;
+    return Math.hypot(px - (ax + t * vx), py - (ay + t * vy));
+  }
 
   let map = null, host = null, canvas = null, ctx = null, W = 0, H = 0, dpr = 1;
   let running = false, raf = 0, last = 0, keyHandler = null, touchStart = null;
@@ -96,16 +116,19 @@ window.PrimeChase = (() => {
   }
 
   function newChasers(level) {
-    const pad = 30;
-    const corners = [[pad, 60], [W - pad, 60], [pad, H - pad], [W - pad, H - pad]];
-    return corners.map(([x, y], i) => ({
-      x, y, home: { x, y }, vx: 0, vy: 0, mode: i, // 0 chase, 1 ahead, 2 flank, 3 wander
-      speed: 1.55 + level * 0.22 + i * 0.06, eaten: 0, wander: { x: W / 2, y: H / 2, until: 0 },
+    const pad = 30, midY = (TOP + H) / 2;
+    // Corners first, then the middle of each edge, as the rounds add more.
+    const spots = [[pad, 60], [W - pad, 60], [pad, H - pad], [W - pad, H - pad],
+      [W / 2, 60], [W / 2, H - pad], [pad, midY], [W - pad, midY]];
+    const L = lv(level);
+    return spots.slice(0, L.tape).map(([x, y], i) => ({
+      x, y, home: { x, y }, vx: 0, vy: 0, mode: i % 4, // 0 chase, 1 ahead, 2 flank, 3 wander
+      speed: L.speed + (i % 4) * 0.06, eaten: 0, wander: { x: W / 2, y: H / 2, until: 0 },
     }));
   }
 
   function resetPositions() {
-    state.player = { x: W / 2, y: H / 2, dir: { x: 0, y: 0 }, want: { x: 0, y: 0 }, r: 11, chomp: 0 };
+    state.player = { x: W / 2, y: H / 2, dir: { x: 0, y: 0 }, want: { x: 0, y: 0 }, r: PLAYER_R, chomp: 0 };
     state.chasers = newChasers(state.level);
     state.scaredUntil = 0;
     state.pauseUntil = performance.now() + 900;
@@ -118,6 +141,9 @@ window.PrimeChase = (() => {
     const dt = Math.min(2.5, (now - last) / 16.67 || 1);
     last = now;
     if (state.phase === "play" && now >= state.pauseUntil) update(dt, now);
+    // The congratulations screen moves on to the next round by itself.
+    if (state.phase === "cleared" && now - state.clearedAt > 4000) nextRound();
+    if (state.confetti) state.confetti.forEach((c) => { c.y += c.vy * dt; c.x += Math.sin((now + c.seed) / 300) * 0.6; c.rot += c.spin * dt; });
     draw(now);
     raf = requestAnimationFrame(step);
   }
@@ -127,20 +153,28 @@ window.PrimeChase = (() => {
     // Turn as soon as a direction is pressed; the field is open, so any turn is legal.
     if (p.want.x || p.want.y) p.dir = { ...p.want };
     const speed = 2.9;
+    const fromX = p.x, fromY = p.y;
     p.x = wrapX(p.x + p.dir.x * speed * dt);
     p.y = wrapY(p.y + p.dir.y * speed * dt);
+    // The path this frame, for the dot check. A frame that wrapped round an
+    // edge is checked at its end point only.
+    const wrapped = Math.abs(p.x - fromX) > W / 2 || Math.abs(p.y - fromY) > FH() / 2;
     if (p.dir.x || p.dir.y) p.chomp += 0.25 * dt;
 
-    // Dots.
+    // Dots. A dot counts once the shield actually covers it: its center
+    // inside the shield's circle, give or take the dot's own radius. Checked
+    // along the whole step, so a fast frame cannot hop over one.
     for (const d of state.dots) {
       if (d.eaten) continue;
-      const rr = d.power ? 13 : 10;
-      if (dist(d, p) < rr) {
+      const reach = PLAYER_R + (d.power ? POWER_R : DOT_R) * 0.5;
+      const near = wrapped ? dist(d, p) : segDist(d.x, d.y, fromX, fromY, p.x, p.y);
+      if (near <= reach) {
         d.eaten = true;
         state.left -= 1;
+        state.units += d.units || 0;
         state.score += d.power ? 50 : 10;
         state.last = d;
-        if (d.power) { state.scaredUntil = now + POWER_TIME; state.combo = 0; }
+        if (d.power) { state.scaredUntil = now + lv().power; state.combo = 0; }
       }
     }
     if (state.left <= 0) { finish(true); return; }
@@ -178,7 +212,7 @@ window.PrimeChase = (() => {
       c.x = wrapX(c.x + c.vx * dt);
       c.y = wrapY(c.y + c.vy * dt);
 
-      if (dist(c, p) < 18) {
+      if (dist(c, p) < PLAYER_R + 8) {
         if (scared) {
           state.combo += 1;
           state.score += 200 * state.combo;
@@ -188,6 +222,7 @@ window.PrimeChase = (() => {
           state.lives -= 1;
           if (state.lives <= 0) { finish(false); return; }
           resetPositions();
+          state.banner = "Caught by Red Tape";
           return;
         }
       }
@@ -274,11 +309,22 @@ window.PrimeChase = (() => {
     }
 
     const p = state.player;
-    echoes(p.x, p.y, p.r * 1.3).forEach(([x, y]) => shield(x, y, p.r * 2.2, C.navy, C.seafoam, p.chomp));
+    // shield() draws a circle of radius 31 on a 32 unit box, so this size
+    // makes the drawn shield exactly PLAYER_R across its radius.
+    echoes(p.x, p.y, PLAYER_R + 2).forEach(([x, y]) => shield(x, y, (PLAYER_R * 32) / 31, C.navy, C.seafoam, p.chomp));
+
+    if (state.confetti) {
+      state.confetti.forEach((c) => {
+        if (c.y < -20 || c.y > H + 20) return;
+        ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot);
+        shield(0, 0, c.size, c.color, "#ffffff", 0);
+        ctx.restore();
+      });
+    }
 
     hud(now);
-    if (state.phase !== "play") panel();
-    else if (now < state.pauseUntil) banner(state.lives < 3 && state.score > 0 ? "Caught by Red Tape" : "Ready");
+    if (state.phase !== "play") panel(now);
+    else if (now < state.pauseUntil) banner(state.banner || "Ready");
   }
 
   /* A sprite straddling an edge is drawn on both sides, so it slides through
@@ -300,7 +346,7 @@ window.PrimeChase = (() => {
     ctx.fillText("PRIME CHASE", 12, 15);
     ctx.fillStyle = "#c9d6e6";
     const lives = "● ".repeat(Math.max(0, state.lives)).trim();
-    ctx.fillText(`Score ${state.score.toLocaleString()}    Lives ${lives}    Left ${state.left}    Level ${state.level}    Best ${Math.max(bestScore(), state.score).toLocaleString()}`, 120, 15);
+    ctx.fillText(`Round ${state.level} of ${ROUNDS}    Score ${state.score.toLocaleString()}    Lives ${lives}    Left ${state.left}    Best ${Math.max(bestScore(), state.score).toLocaleString()}`, 120, 15);
     ctx.textAlign = "right";
     if (state.last) {
       const t = `${titleCase(state.last.name)}, ${titleCase(state.last.city)} ${state.last.state} · ${state.last.units} units`;
@@ -323,25 +369,33 @@ window.PrimeChase = (() => {
     ctx.fillText(text, W / 2, H / 2 - 30);
   }
 
-  function panel() {
+  function panel(now) {
     const lines = state.phase === "intro" ? [
       ["Prime Chase", 26, 800, C.navy],
       ["Collect every property in view before the Red Tape catches you.", 14, 500, C.slate],
       ["Big seafoam dots are properties exiting within five years. Grab one", 14, 500, C.slate],
       ["and the Red Tape runs scared for a few seconds. Catch it then.", 14, 500, C.slate],
       ["Run off any edge to come back on the other side.", 14, 500, C.slate],
+      [`${ROUNDS} rounds, with more Red Tape each round.`, 14, 500, C.slate],
       ["Arrow keys or WASD to move. Swipe on a phone. Esc to quit.", 13, 500, C.slate],
       [`${state.left} properties in view · Press Enter or Space to play`, 14, 700, C.seafoam],
-    ] : state.phase === "won" ? [
-      ["Map cleared", 26, 800, C.navy],
-      [`Score ${state.score.toLocaleString()} · Level ${state.level}`, 16, 600, C.slate],
-      ["Press Enter for the next level, or Esc to quit.", 14, 700, C.seafoam],
+    ] : state.phase === "cleared" ? [
+      ["Congratulations!", 28, 800, C.navy],
+      [`Round ${state.level} of ${ROUNDS} cleared`, 17, 700, C.seafoam],
+      [`${state.dots.length} properties · ${state.units.toLocaleString()} units · Score ${state.score.toLocaleString()}`, 14, 500, C.slate],
+      [`Round ${state.level + 1} brings ${lv(state.level + 1).tape} pieces of Red Tape, and they are faster. Plus one life.`, 14, 500, C.slate],
+      [`Starting in ${Math.max(1, Math.ceil((4000 - (now - state.clearedAt)) / 1000))} · Press Enter to go now`, 14, 700, C.seafoam],
+    ] : state.phase === "champion" ? [
+      ["You beat Prime Chase!", 28, 800, C.navy],
+      [`All ${ROUNDS} rounds cleared`, 17, 700, C.seafoam],
+      [`Final score ${state.score.toLocaleString()} · Best ${Math.max(bestScore(), state.score).toLocaleString()}`, 15, 600, C.slate],
+      ["Press Enter to play again, or Esc to quit.", 14, 700, C.seafoam],
     ] : [
       ["Out of lives", 26, 800, C.navy],
       [`Score ${state.score.toLocaleString()} · Best ${Math.max(bestScore(), state.score).toLocaleString()}`, 16, 600, C.slate],
       ["Press Enter to play again, or Esc to quit.", 14, 700, C.seafoam],
     ];
-    const boxW = Math.min(W - 40, 560), boxH = 40 + lines.length * 30;
+    const boxW = Math.min(W - 40, 640), boxH = 40 + lines.length * 30;
     const x = W / 2 - boxW / 2, y = H / 2 - boxH / 2;
     ctx.fillStyle = "rgba(255,255,255,.97)";
     ctx.shadowColor = "rgba(8,25,55,.3)"; ctx.shadowBlur = 24;
@@ -370,16 +424,36 @@ window.PrimeChase = (() => {
 
   /* ------------------------------------------------------------- control */
 
-  function newGame(level = 1, keepScore = 0) {
+  function newGame(level = 1, keepScore = 0, lives = 3) {
     const dots = collectDots();
-    state = { dots, left: dots.length, score: keepScore, lives: 3, level, combo: 0,
-      last: null, phase: "play", scaredUntil: 0, pauseUntil: 0 };
+    state = { dots, left: dots.length, score: keepScore, units: 0, lives, level, combo: 0,
+      last: null, phase: "play", scaredUntil: 0, pauseUntil: 0, banner: `Round ${level}`, confetti: null };
     resetPositions();
+  }
+
+  /* After a cleared round: the same properties back on the board, one more
+     piece of Red Tape, and a life back (up to five). */
+  function nextRound() {
+    newGame(state.level + 1, state.score, Math.min(5, state.lives + 1));
+    state.pauseUntil = performance.now() + 1400;
+  }
+
+  function burst() {
+    const colors = [C.navy, C.seafoam, C.slate];
+    state.confetti = Array.from({ length: 70 }, (_, i) => ({
+      x: Math.random() * W, y: -Math.random() * H * 0.8 - 20, vy: 1.6 + Math.random() * 2.4,
+      rot: Math.random() * 6, spin: (Math.random() - 0.5) * 0.12, size: 10 + Math.random() * 14,
+      color: colors[i % colors.length], seed: Math.random() * 5000,
+    }));
   }
 
   function finish(won) {
     saveBest(state.score);
-    state.phase = won ? "won" : "lost";
+    if (!won) { state.phase = "lost"; return; }
+    burst();
+    if (state.level >= ROUNDS) { state.phase = "champion"; return; }
+    state.phase = "cleared";
+    state.clearedAt = performance.now();
   }
 
   function onKey(e) {
@@ -399,8 +473,8 @@ window.PrimeChase = (() => {
       e.preventDefault();
       e.stopPropagation();
       if (state.phase === "intro") { state.phase = "play"; state.pauseUntil = performance.now() + 900; }
-      else if (state.phase === "won") newGame(state.level + 1, state.score);
-      else if (state.phase === "lost") newGame(1, 0);
+      else if (state.phase === "cleared") nextRound();
+      else if (state.phase === "lost" || state.phase === "champion") newGame(1, 0);
     }
   }
 
