@@ -1197,3 +1197,32 @@ html.atlas-locked body {
 @media (prefers-reduced-motion: reduce) {
   #prime-stamp, #prime-stamp .stamp { animation: none; }
 }
+
+/* Shields falling before the stamp. */
+.shield-rain { position: fixed; inset: 0; z-index: 9999; pointer-events: none; overflow: hidden; }
+.shield-rain img {
+  position: absolute;
+  top: -70px;
+  height: auto;
+  opacity: .95;
+  animation-name: shield-fall;
+  animation-timing-function: cubic-bezier(.35, .05, .65, 1);
+  animation-fill-mode: both;
+}
+@keyframes shield-fall {
+  from { transform: translateY(0) rotate(0deg); }
+  to { transform: translateY(calc(100vh + 140px)) rotate(var(--spin)); }
+}
+#prime-stamp .stamp-games a.stamp-chase { background: #3b7f83; }
+#prime-stamp .stamp-games a.stamp-chase:hover { background: #081937; }
+
+/* Prime Chase, laid over the map. */
+canvas.prime-chase { position: absolute; inset: 0; z-index: 1000; touch-action: none; }
+.chasing .leaflet-control-container,
+.chasing .leaflet-marker-pane,
+.chasing .leaflet-overlay-pane,
+.chasing .leaflet-shadow-pane,
+.chasing .leaflet-flipPane-pane,
+.chasing .leaflet-tooltip-pane,
+.chasing .leaflet-popup-pane { visibility: hidden; }
+

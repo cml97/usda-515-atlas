@@ -326,10 +326,34 @@ const Atlas = (() => {
 
   /* ----------------------------------------------------------- the stamp */
 
-  /* Up, up, down, down, left, right, left, right, B, A. The favicon already
-     plays on USDA's beef grades, so the atlas grades itself. */
+  /* Up, up, down, down, left, right, left, right, B, A, Start. Enter is
+     Start. The favicon already plays on USDA's beef grades, so the atlas
+     grades itself. */
   const KONAMI = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft",
-    "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
+    "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a", "Enter"];
+
+  /* A shower of the favicon shield before the stamp lands. */
+  function shieldRain() {
+    if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return 0;
+    const sky = document.createElement("div");
+    sky.className = "shield-rain";
+    const n = 46;
+    for (let i = 0; i < n; i++) {
+      const img = document.createElement("img");
+      img.src = "favicon.svg";
+      img.alt = "";
+      const size = 22 + Math.random() * 34;
+      img.style.left = `${Math.random() * 100}vw`;
+      img.style.width = `${size}px`;
+      img.style.animationDuration = `${1.6 + Math.random() * 1.4}s`;
+      img.style.animationDelay = `${Math.random() * 1.1}s`;
+      img.style.setProperty("--spin", `${(Math.random() * 2 - 1) * 540}deg`);
+      sky.append(img);
+    }
+    document.body.append(sky);
+    setTimeout(() => sky.remove(), 4000);
+    return 900;
+  }
   let konamiAt = 0;
 
   function primeStamp() {
@@ -357,6 +381,7 @@ const Atlas = (() => {
           <h4>Games</h4>
           <a href="https://clederberg.github.io/Bubble-Craps/" target="_blank" rel="noopener">Bubble Craps</a>
           <a href="https://mrare-cmd.github.io/GreyHub/" target="_blank" rel="noopener">GreyHub</a>
+          <a href="map.html#prime-chase" class="stamp-chase">Prime Chase</a>
         </div>
         <p class="stamp-hint">Click outside or press Esc to close</p>
       </div>`;
@@ -368,6 +393,10 @@ const Atlas = (() => {
     }
     // Clicks inside the card (the game links) leave it open.
     wrap.addEventListener("click", (e) => { if (!e.target.closest(".stamp-card")) close(); });
+    // Already on the map, start the game in place rather than reloading.
+    wrap.querySelector(".stamp-chase").addEventListener("click", (e) => {
+      if (window.PrimeChase) { e.preventDefault(); close(); window.PrimeChase.start(); }
+    });
     document.addEventListener("keydown", onEsc);
     document.body.append(wrap);
   }
@@ -379,7 +408,9 @@ const Atlas = (() => {
     konamiAt = key === KONAMI[konamiAt] ? konamiAt + 1 : (key === KONAMI[0] ? 1 : 0);
     if (konamiAt === KONAMI.length) {
       konamiAt = 0;
-      primeStamp();
+      e.preventDefault();
+      if (document.getElementById("prime-stamp")) return;
+      setTimeout(primeStamp, shieldRain());
     }
   });
 

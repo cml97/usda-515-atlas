@@ -397,6 +397,13 @@
     refresh();
     addOverlays();
 
+    // For Prime Chase (game.js), which plays on this map with the dots drawn here.
+    window.AtlasMap = {
+      get map() { return map; },
+      get points() { return lastPoints; },
+    };
+    document.dispatchEvent(new Event("atlasmap:ready"));
+
     // Re-measure once more after the browser has finished its first paint, and
     // again if the window changes shape.
     requestAnimationFrame(() => map.invalidateSize({ animate: false }));
