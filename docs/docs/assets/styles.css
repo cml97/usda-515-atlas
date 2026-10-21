@@ -1,0 +1,1147 @@
+:root {
+  --navy: #081937;
+  --navy-soft: #1b2e50;
+  --seafoam: #3b7f83;
+  --sorbet: #f29651;
+  --ink: #14203a;
+  --muted: #66708a;
+  --line: #dfe4ec;
+  --bg: #f5f7fa;
+  --card: #ffffff;
+  --danger: #c0392b;
+
+  /* Program exit horizon. This is ordered data, so the three future buckets
+     are one hue getting darker as the exit gets closer, and the ramp itself
+     carries the ordering. "Projected date passed" is a state rather than a
+     rank, so it keeps a status color and always ships with a written label.
+     Validated for monotone lightness, step gaps, single hue and contrast
+     against the surface in both light and dark. */
+  --h-past: #d03b3b;
+  --h-near: #184f95;
+  --h-mid:  #256abf;
+  --h-far:  #3987e5;
+  --h-none: #77756e;
+}
+
+/* The same ramp restepped for a dark surface, which is a different set of
+   colors rather than an inversion of the light one. Nothing else in the
+   interface has a dark theme yet, so this sits inert until something sets the
+   attribute on the document. Keeping it here means the validated pairing is
+   not lost between now and then. */
+:root[data-theme="dark"] {
+  --h-past: #d03b3b;
+  --h-near: #86b6ef;
+  --h-mid:  #3987e5;
+  --h-far:  #256abf;
+  --h-none: #9b9a90;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Proxima Nova", "proxima-nova", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+a { color: var(--seafoam); }
+
+header.masthead {
+  background: var(--navy);
+  color: #fff;
+  padding: 18px 24px 0;
+}
+
+.masthead-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.masthead h1 {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  margin: 0;
+}
+
+.masthead .sub {
+  color: #9fb0cb;
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.masthead .asof {
+  max-width: 1600px;
+  margin: 5px auto 0;
+  color: #7d8fab;
+  font-size: 11.5px;
+  letter-spacing: .2px;
+}
+
+.session {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #9fb0cb;
+  white-space: nowrap;
+}
+
+.session button {
+  background: none;
+  border: 1px solid #33456a;
+  color: #cbd6e6;
+  border-radius: 5px;
+  padding: 4px 11px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.session button:hover { border-color: var(--sorbet); color: var(--sorbet); }
+
+@media (max-width: 700px) {
+  .session { margin-left: 0; width: 100%; }
+}
+
+nav.tabs {
+  max-width: 1600px;
+  margin: 14px auto 0;
+  display: flex;
+  gap: 4px;
+}
+
+nav.tabs a {
+  color: #9fb0cb;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px 6px 0 0;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+nav.tabs a.active { background: var(--bg); color: var(--navy); }
+
+main {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 18px 24px 60px;
+}
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.filters {
+  padding: 13px 15px 14px;
+  display: grid;
+  /* One track size for every control, so nothing is a different width or
+     sits on a line of its own. */
+  grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+  gap: 11px 13px;
+  align-items: end;
+}
+
+.filters .field { min-width: 0; }
+.filters .field.wide { grid-column: span 2; }
+/* Five options rather than three, so it takes two tracks and the labels stay
+   readable instead of being clipped. */
+.filters .field.seg-wide { grid-column: span 2; }
+
+.filters label {
+  display: block;
+  margin: 0 0 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Every control shares one box: same height, font, border and radius. */
+.filters input[type="search"],
+.filters input[type="number"],
+.filters .chipbox,
+.filters .segment,
+.filters .clearall {
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.filters input[type="search"],
+.filters input[type="number"] {
+  padding: 0 9px;
+}
+
+.filters input::placeholder { color: #9aa4b8; }
+
+.filters input[type="search"]:focus,
+.filters input[type="number"]:focus,
+.filters .chipbox:focus-within {
+  outline: none;
+  border-color: var(--seafoam);
+  box-shadow: 0 0 0 2px rgba(59, 127, 131, .14);
+}
+
+/* ------------------------------------------------------------ ranges */
+
+.filters .range .pair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filters .range input {
+  flex: 1 1 0;
+  width: 0;
+  text-align: center;
+}
+
+.filters .range .dash,
+.filters .range .unit {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* Strip the spinners: they cramp an already narrow box. */
+.filters input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.filters input[type="number"]::-webkit-outer-spin-button,
+.filters input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* -------------------------------------------------------- chip fields */
+
+.filters .chipbox {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 5px;
+  cursor: text;
+}
+
+.filters .chipbox .chips { display: contents; }
+
+.filters .chipbox input {
+  flex: 1 1 46px;
+  min-width: 46px;
+  width: 0;
+  border: 0;
+  outline: none;
+  padding: 0 3px;
+  font: inherit;
+  font-size: 13px;
+  background: transparent;
+  min-height: 24px;
+}
+
+.filters .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 1px 3px 1px 7px;
+  background: #eef5f5;
+  border: 1px solid #c9dedd;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--navy);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.filters .chip button {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0 3px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--seafoam);
+}
+
+.filters .chip button:hover { color: var(--danger); }
+
+.filters .menu {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 4px);
+  left: -1px;
+  right: -1px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  max-height: 232px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(8, 25, 55, .11);
+}
+
+.filters .menu li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.filters .menu li.on,
+.filters .menu li:hover { background: #eef5f5; }
+.filters .menu li .hint { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+
+/* --------------------------------------------------- segmented toggles */
+
+.filters .segment {
+  display: flex;
+  padding: 2px;
+  gap: 2px;
+}
+
+.filters .segment.five button { font-size: 11.5px; padding: 0 2px; }
+
+.filters .segment button {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 0;
+  background: none;
+  border-radius: 4px;
+  padding: 0 4px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filters .segment button:hover { color: var(--navy); }
+
+.filters .segment button.on {
+  background: var(--seafoam);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* The resting choice gets a plain tint: visible as the current state,
+   without claiming to be a filter. */
+.filters .segment button.neutral {
+  background: #eef1f5;
+  color: var(--navy);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------ clear all */
+
+.filters .clearall {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  padding: 0 10px;
+}
+
+.filters .clearall:hover { border-color: var(--muted); color: var(--navy); }
+
+/* Armed whenever something is narrowing the view, so it is obvious that a
+   filter is on and where to switch it off. */
+.filters .clearall.armed {
+  background: #fdecea;
+  border-color: #f0b4ad;
+  color: #a6291b;
+}
+
+.filters .clearall.armed:hover { background: #fbdcd8; border-color: #e08c81; }
+
+@media (max-width: 560px) {
+  .filters { grid-template-columns: repeat(auto-fit, minmax(146px, 1fr)); }
+  .filters .field.wide { grid-column: span 2; }
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.stat {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--seafoam);
+  border-radius: 6px;
+  padding: 10px 13px;
+}
+
+.stat .k {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.stat .v {
+  font-size: 21px;
+  font-weight: 600;
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat.alert { border-left-color: var(--sorbet); }
+
+.table-wrap { overflow-x: auto; }
+
+table.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+table.grid th {
+  position: sticky;
+  top: 0;
+  background: var(--navy);
+  color: #fff;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  padding: 9px 10px;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+table.grid th.num, table.grid td.num { text-align: right; }
+table.grid th:hover { color: var(--sorbet); }
+table.grid th .arrow { opacity: .45; font-size: 10px; }
+
+table.grid td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+table.grid tbody tr:nth-child(even) { background: #fafbfd; }
+table.grid tbody tr:hover { background: #eef5f5; cursor: pointer; }
+table.grid td.name { white-space: normal; min-width: 210px; font-weight: 600; }
+
+.pill {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* The year is the message, so it wears an ink color at full contrast and a
+   dot beside it carries the horizon. Same five colors as the map and its
+   legend, so a row and a marker are obviously the same thing. */
+.pill.past, .pill.near, .pill.mid, .pill.far, .pill.none {
+  background: #f1f4f8;
+  color: var(--navy);
+}
+
+.pill.past::before,
+.pill.near::before,
+.pill.mid::before,
+.pill.far::before,
+.pill.none::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: 1px;
+}
+
+.pill.past::before { background: var(--h-past); }
+.pill.near::before { background: var(--h-near); }
+.pill.mid::before  { background: var(--h-mid); }
+.pill.far::before  { background: var(--h-far); }
+.pill.none::before { background: var(--h-none); }
+
+.pill.lihtc { background: #eef0f8; color: var(--navy-soft); }
+.pill.basis { background: #e8f1f1; color: #2f6a6e; }
+.pill.basis-new { background: #3b7f83; color: #fff; }
+.pill.basis-leave { background: #eceef2; color: var(--muted); }
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.pager .count { color: var(--muted); font-size: 12.5px; }
+
+.drawer-backdrop {
+  /* above Leaflet's 1000 */
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 25, 55, .42);
+  z-index: 2000;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(480px, 100%);
+  background: #fff;
+  z-index: 2001;
+  overflow-y: auto;
+  box-shadow: -3px 0 22px rgba(8, 25, 55, .2);
+}
+
+.drawer header {
+  background: var(--navy);
+  color: #fff;
+  padding: 16px 20px;
+  position: sticky;
+  top: 0;
+}
+
+.drawer header h2 { margin: 0 0 3px; font-size: 17px; }
+.drawer header .where { color: #9fb0cb; font-size: 12.5px; }
+
+.drawer .close {
+  position: absolute;
+  top: 13px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: #9fb0cb;
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.drawer section { padding: 14px 20px; border-bottom: 1px solid var(--line); }
+
+.drawer h3 {
+  margin: 0 0 9px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  color: var(--seafoam);
+}
+
+.kv { display: grid; grid-template-columns: 46% 54%; gap: 5px 10px; font-size: 13px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.mix { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.mix .cell {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 5px 9px;
+  text-align: center;
+  min-width: 52px;
+}
+
+.mix .cell b { display: block; font-size: 15px; color: var(--navy); }
+.mix .cell span { font-size: 10.5px; color: var(--muted); }
+
+#map { height: calc(100vh - 300px); min-height: 420px; border-radius: 8px; }
+
+.grid td .yes { color: #1f7a4d; font-weight: 600; }
+.grid td .no  { color: var(--muted); }
+
+/* Leaflet puts its controls at z-index 1000, which left the program exit key
+   sitting on top of the detail panel and covering the numbers. The panel and
+   its backdrop have to clear every Leaflet layer, and the key is hidden
+   outright while the panel is open so it cannot compete. */
+body.drawer-open .leaflet-control-container { display: none; }
+
+.legend {
+  background: var(--card);
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  box-shadow: 0 2px 10px rgba(8, 25, 55, .10);
+  font-size: 12px;
+  line-height: 1.5;
+  min-width: 168px;
+  overflow: hidden;
+}
+
+.legend .legend-title {
+  display: block;
+  padding: 8px 12px 7px;
+  border-bottom: 1px solid var(--line);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.legend .legend-body { padding: 8px 12px 9px; }
+
+.legend .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2.5px 0;
+  color: var(--ink);
+}
+
+.legend .row .n {
+  margin-left: auto;
+  padding-left: 10px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend i {
+  flex: 0 0 auto;
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(8, 25, 55, .15);
+}
+
+.legend .legend-foot {
+  display: block;
+  padding: 7px 12px 8px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* Sized by units, so the legend says so rather than leaving it to the source
+   note underneath the map. */
+.legend .sizekey {
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.legend .sizekey span {
+  display: inline-block;
+  border-radius: 50%;
+  background: #c8cfdb;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(8, 25, 55, .15);
+}
+
+/* Clustered points. The bubble wears the mix of horizons inside it as a ring,
+   so zooming out summarizes the timing rather than throwing it away, and the
+   count sits on the surface color where it is legible at any step of the
+   ramp. */
+.hcluster {
+  background: none;
+  border: 0;
+}
+
+.hcluster .ring {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 5px rgba(8, 25, 55, .35);
+}
+
+.hcluster .ring::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background: var(--card);
+}
+
+.hcluster .ring span {
+  position: relative;
+  color: var(--navy);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* Basemap switch, built to look like the rest of the interface rather than
+   like a Leaflet default. */
+.basemap-switch {
+  display: flex;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  box-shadow: 0 2px 10px rgba(8, 25, 55, .10);
+  padding: 2px;
+  gap: 2px;
+}
+
+.basemap-switch button {
+  border: 0;
+  background: none;
+  border-radius: 5px;
+  padding: 5px 11px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.basemap-switch button:hover { color: var(--navy); }
+
+.basemap-switch button.on {
+  background: var(--navy);
+  color: #fff;
+  font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .legend { min-width: 0; font-size: 11.5px; }
+  .legend .legend-foot, .legend .sizekey { display: none; }
+}
+
+.loading { padding: 40px; text-align: center; color: var(--muted); }
+
+.note {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 14px 0 0;
+  line-height: 1.6;
+}
+
+@media (max-width: 700px) {
+  main { padding: 14px 16px 50px; }
+  .masthead { padding: 14px 16px 0; }
+  .kv { grid-template-columns: 1fr; }
+  .kv dd { margin-bottom: 6px; }
+}
+
+/* ------------------------------------------------------------ sign-in gate */
+
+/* Nothing but the sign-in screen renders until a session exists. The class is
+   set by a small script in the page head, before any of the interface paints,
+   so there is no flash of the table for someone who is not signed in. */
+html.atlas-locked header.masthead,
+html.atlas-locked main {
+  display: none !important;
+}
+
+html.atlas-locked body {
+  background: var(--navy);
+}
+
+#signin-gate {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--navy);
+  z-index: 1000;
+}
+
+.signin-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 38px 40px 32px;
+  max-width: 430px;
+  text-align: center;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .3);
+}
+
+.signin-card h1 {
+  margin: 0 0 10px;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--navy);
+  line-height: 1.3;
+}
+
+.signin-card p {
+  margin: 0 0 22px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.signin-go {
+  display: inline-block;
+  background: var(--seafoam);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 11px 26px;
+  border-radius: 6px;
+}
+
+.signin-go:hover { background: #336d70; }
+
+.signin-card .signin-foot {
+  margin: 20px 0 0;
+  font-size: 11.5px;
+  color: #9aa3b8;
+}
+
+.chip-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: #eef5f5;
+  border: 1px solid #c9dedd;
+  border-left: 3px solid var(--seafoam);
+  border-radius: 6px;
+  padding: 9px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.chip-banner[hidden] { display: none; }
+
+.chip-banner strong { color: var(--navy); }
+.chip-banner a { font-weight: 600; }
+
+/* ------------------------------------------------- about-the-data footnote */
+
+.datanote {
+  max-width: 900px;
+  margin: 26px auto 40px;
+  padding: 0 18px;
+}
+
+.datanote details {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.datanote summary {
+  cursor: pointer;
+  padding: 12px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  list-style: none;
+}
+
+.datanote summary::-webkit-details-marker { display: none; }
+
+.datanote summary::before {
+  content: "\25B8";
+  display: inline-block;
+  margin-right: 9px;
+  transition: transform .15s ease;
+}
+
+.datanote details[open] summary::before { transform: rotate(90deg); }
+.datanote summary:hover { color: var(--navy); }
+
+.datanote-body {
+  padding: 2px 20px 18px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.datanote-body h3 {
+  margin: 18px 0 6px;
+  font-size: 13.5px;
+  color: var(--navy);
+}
+
+.datanote-body h3:first-child { margin-top: 14px; }
+.datanote-body p, .datanote-body ul { margin: 0 0 9px; }
+.datanote-body ul { padding-left: 20px; }
+.datanote-body li { margin-bottom: 5px; }
+.datanote-body a { color: var(--seafoam); }
+
+@media (max-width: 700px) {
+  .datanote { padding: 0 12px; }
+  .datanote-body { padding: 2px 15px 15px; }
+}
+
+/* Section 202/811 PRAC marked inside a Section 8 "Yes" */
+.grid td .flagmark { color: var(--sorbet); font-weight: 700; cursor: help; margin-left: 1px; }
+.drawer .warn { color: var(--sorbet); font-weight: 600; }
+
+/* Map shortcut on each Companies row */
+.grid td a.rowmap {
+  margin-left: 7px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity .12s ease, color .12s ease;
+}
+.grid tr:hover a.rowmap { opacity: 1; }
+.grid td a.rowmap:hover { color: var(--seafoam); }
+@media (hover: none) { .grid td a.rowmap { opacity: 1; } }
+
+/* ------------------------------------------------------- property detail */
+
+.backline { margin: 0 0 12px; font-size: 13px; }
+.backline a { font-weight: 600; }
+
+.detailhead { padding: 18px 22px; margin-bottom: 14px; }
+.detailhead h2 { margin: 0 0 4px; font-size: 21px; color: var(--navy); }
+.detailhead .where { margin: 0; color: var(--muted); font-size: 13.5px; }
+
+.headfacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid var(--line);
+}
+
+.headfacts div { display: flex; flex-direction: column; gap: 2px; }
+.headfacts span {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.headfacts b { font-size: 15px; color: var(--navy); }
+
+.detailgrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 14px;
+  align-items: start;
+}
+
+.detailmain section { padding: 16px 22px; border-bottom: 1px solid var(--line); }
+.detailmain section:last-child { border-bottom: 0; }
+.detailmain h3 {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--seafoam);
+}
+
+.detailside { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 14px; }
+.minimap-wrap, .nearlist-wrap { padding: 14px 16px 16px; }
+.minimap-title {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--seafoam);
+}
+
+.minimap {
+  height: 280px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #eef1f5;
+}
+
+.minimap .leaflet-container { font: inherit; }
+
+.nearlist { list-style: none; margin: 0; padding: 0; }
+.nearlist li { padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.nearlist li:last-child { border-bottom: 0; }
+.nearlist li.none { color: var(--muted); }
+.nearlist a { font-weight: 600; }
+.nearlist .meta { display: block; margin-top: 1px; color: var(--muted); font-size: 12px; }
+
+.drawer-more { margin: 7px 0 0; font-size: 12.5px; }
+.drawer-more a { color: #cfe0f2; }
+
+@media (max-width: 900px) {
+  .detailgrid { grid-template-columns: minmax(0, 1fr); }
+  .detailside { position: static; }
+  .minimap { height: 240px; }
+}
+
+/* ------------------------------------------------------------ Prime Score */
+
+.primehead { display: flex; align-items: baseline; gap: 9px; margin-bottom: 12px; }
+.primehead b { font-size: 30px; line-height: 1; color: var(--navy); }
+.primehead span { font-size: 12.5px; color: var(--muted); }
+
+.primetable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.primetable thead th {
+  text-align: left;
+  padding: 0 8px 6px 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+.primetable thead th.num, .primetable td.num { text-align: right; }
+.primetable tbody th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--navy);
+  padding: 8px 10px 8px 0;
+  vertical-align: top;
+}
+.primetable tbody th .fhint {
+  display: block;
+  font-weight: 400;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.primetable td { padding: 8px 8px 8px 0; vertical-align: top; }
+.primetable td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.primetable td.bar { width: 34%; padding-top: 12px; }
+.primetable td.bar span {
+  display: block;
+  height: 7px;
+  min-width: 2px;
+  border-radius: 4px;
+  background: var(--seafoam);
+}
+
+/* Weight sliders */
+.weights { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 18px; }
+.weights .w { display: flex; flex-direction: column; gap: 3px; }
+.weights .w label { font-size: 12px; color: var(--navy); display: flex; justify-content: space-between; }
+.weights .w label b { color: var(--seafoam); font-variant-numeric: tabular-nums; }
+.weights input[type="range"] { width: 100%; accent-color: var(--seafoam); }
+.weights-actions { margin-top: 12px; display: flex; gap: 10px; align-items: center; }
+
+.weightbox { margin-bottom: 14px; }
+.weightbox summary {
+  cursor: pointer;
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  list-style: none;
+}
+.weightbox summary::-webkit-details-marker { display: none; }
+.weightbox summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; transition: transform .15s ease; }
+.weightbox[open] summary::before { transform: rotate(90deg); }
+.weightbox summary:hover { color: var(--navy); }
+.weightbody { padding: 4px 16px 16px; border-top: 1px solid var(--line); }
+.weights-actions .note { margin: 0; }
+
+
+/* --------------------------------------------- what the Prime Score is
+
+   A number labeled 0 to 100 with nothing next to it gets either misread as a
+   grade or distrusted. The explainer sits at the top of the weights panel,
+   and the same first line is repeated as a tooltip on the column header for
+   anyone who never opens the panel. */
+
+.scoreinfo {
+  margin: 0 0 14px;
+  padding: 12px 14px 13px;
+  background: #f4f7fa;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--seafoam);
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.scoreinfo p { margin: 0 0 8px; }
+.scoreinfo p:last-child { margin-bottom: 0; }
+.scoreinfo b { color: var(--navy); }
+
+/* A dotted underline is the standing convention for "there is more here on
+   hover", and the title attribute carries it on touch through a tap as well. */
+.grid th .infomark {
+  display: inline-block;
+  margin-left: 4px;
+  width: 13px;
+  height: 13px;
+  line-height: 12px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-align: center;
+  vertical-align: 1px;
+  opacity: .65;
+  cursor: help;
+}
+
+.grid th:hover .infomark { opacity: 1; }
+
+.primefoot {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+/* A qualifier sitting beside a value in a definition list: the basis a figure
+   was computed on, or the reason one is absent. Quieter than the value it
+   follows, without becoming a footnote. */
+.kv dd .muted,
+.detailmain .muted {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+/* Map overlay switches: a quiet note on layers that only draw when zoomed in. */
+.leaflet-control-layers .ovl-hint { font-size: 10px; color: var(--muted); margin-left: 3px; }
+.leaflet-control-layers-overlays label { font-size: 12px; }
+.leaflet-control-layers .ovl-swatch { display: inline-block; width: 12px; height: 12px; margin: 0 6px 0 2px; vertical-align: -2px; box-sizing: border-box; }
+.leaflet-control-layers .ovl-swatch.ring { border-radius: 50%; }
+
+/* Property page header: the name on the left, the export on the right. */
+.detailhead .dhead-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.detailhead .dhead-top h2 { margin-right: auto; }
