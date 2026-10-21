@@ -178,7 +178,10 @@
   function drawHead(d) {
     const cls = Atlas.horizonClass(d.exit_year);
     $("dhead").innerHTML = `
-      <h2>${Atlas.titleCase(d.name)}</h2>
+      <div class="dhead-top">
+        <h2>${Atlas.titleCase(d.name)}</h2>
+        <button type="button" class="btn" id="d-full" title="Everything on this page, as a formatted Excel workbook">Download full info (Excel)</button>
+      </div>
       <p class="where">${Atlas.titleCase(d.address || "")}${d.address ? ", " : ""}${Atlas.titleCase(d.city)}, ${Atlas.esc(d.state)} ${Atlas.esc(d.zip) || ""}</p>
       <div class="headfacts">
         <div><span>Units</span><b>${Atlas.num(d.units)}</b></div>
@@ -191,6 +194,13 @@
         <div><span>Exit</span><b><span class="pill ${cls}">${Atlas.horizonLabel(d.exit_year)}</span></b></div>
       </div>`;
     document.title = `${Atlas.titleCase(d.name)} - USDA Section 515 Property Atlas`;
+
+    // The same workbook a portfolio exports, for this one property.
+    $("d-full").addEventListener("click", () => {
+      const t = document.createElement("textarea");
+      t.innerHTML = Atlas.titleCase(d.name);
+      AtlasExport.download({ name: t.value, records: [d], summary: false, button: $("d-full") });
+    });
   }
 
   Atlas.load().then(async () => {

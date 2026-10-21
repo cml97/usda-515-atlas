@@ -1142,3 +1142,6 @@ html.atlas-locked body {
 .leaflet-control-layers .ovl-swatch { display: inline-block; width: 12px; height: 12px; margin: 0 6px 0 2px; vertical-align: -2px; box-sizing: border-box; }
 .leaflet-control-layers .ovl-swatch.ring { border-radius: 50%; }
 
+/* Property page header: the name on the left, the export on the right. */
+.detailhead .dhead-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.detailhead .dhead-top h2 { margin-right: auto; }
