@@ -309,6 +309,80 @@ const Atlas = (() => {
 
   captureToken();
 
+  /* ------------------------------------------------------------ credit */
+
+  /* Added from here rather than in each page's markup so every page picks it
+     up, including any added later. */
+  function paintCredit() {
+    const h1 = document.querySelector(".masthead-inner h1");
+    if (!h1 || document.querySelector(".masthead .credit")) return;
+    const tag = document.createElement("span");
+    tag.className = "credit";
+    tag.textContent = "Created by Charlie Lederberg";
+    h1.after(tag);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", paintCredit);
+  else paintCredit();
+
+  /* ----------------------------------------------------------- the stamp */
+
+  /* Up, up, down, down, left, right, left, right, B, A. The favicon already
+     plays on USDA's beef grades, so the atlas grades itself. */
+  const KONAMI = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft",
+    "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
+  let konamiAt = 0;
+
+  function primeStamp() {
+    if (document.getElementById("prime-stamp")) return;
+    const wrap = document.createElement("div");
+    wrap.id = "prime-stamp";
+    wrap.setAttribute("role", "dialog");
+    wrap.setAttribute("aria-label", "USDA Prime");
+    wrap.innerHTML = `
+      <div class="stamp-card">
+        <svg class="stamp" viewBox="0 0 200 230" aria-hidden="true">
+          <path d="M100 8 L188 34 L188 112 C188 168 148 204 100 222 C52 204 12 168 12 112 L12 34 Z"
+                fill="none" stroke="currentColor" stroke-width="9"/>
+          <path d="M100 24 L174 46 L174 112 C174 160 140 190 100 206 C60 190 26 160 26 112 L26 46 Z"
+                fill="none" stroke="currentColor" stroke-width="3"/>
+          <text x="100" y="92" text-anchor="middle" font-size="40" font-weight="800" fill="currentColor"
+                font-family="Georgia, serif" letter-spacing="3">USDA</text>
+          <line x1="44" y1="108" x2="156" y2="108" stroke="currentColor" stroke-width="4"/>
+          <text x="100" y="152" text-anchor="middle" font-size="36" font-weight="800" fill="currentColor"
+                font-family="Georgia, serif" letter-spacing="2">PRIME</text>
+        </svg>
+        <p class="stamp-line">This atlas has been graded Prime.</p>
+        <p class="stamp-by">Created by Charlie Lederberg</p>
+        <div class="stamp-games">
+          <h4>Games</h4>
+          <a href="https://clederberg.github.io/Bubble-Craps/" target="_blank" rel="noopener">Bubble Craps</a>
+          <a href="https://mrare-cmd.github.io/GreyHub/" target="_blank" rel="noopener">GreyHub</a>
+        </div>
+        <p class="stamp-hint">Click outside or press Esc to close</p>
+      </div>`;
+    const onEsc = (e) => { if (e.key === "Escape") close(); };
+    function close() {
+      wrap.classList.add("out");
+      setTimeout(() => wrap.remove(), 250);
+      document.removeEventListener("keydown", onEsc);
+    }
+    // Clicks inside the card (the game links) leave it open.
+    wrap.addEventListener("click", (e) => { if (!e.target.closest(".stamp-card")) close(); });
+    document.addEventListener("keydown", onEsc);
+    document.body.append(wrap);
+  }
+
+  document.addEventListener("keydown", (e) => {
+    const el = e.target;
+    if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    konamiAt = key === KONAMI[konamiAt] ? konamiAt + 1 : (key === KONAMI[0] ? 1 : 0);
+    if (konamiAt === KONAMI.length) {
+      konamiAt = 0;
+      primeStamp();
+    }
+  });
+
   // If the token arrives without a full page load, pick it up and retry.
   window.addEventListener("hashchange", () => {
     if (!/[#&]atlas_token=/.test(location.hash)) return;

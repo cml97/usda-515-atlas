@@ -1145,3 +1145,55 @@ html.atlas-locked body {
 /* Property page header: the name on the left, the export on the right. */
 .detailhead .dhead-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
 .detailhead .dhead-top h2 { margin-right: auto; }
+
+/* Credit beside the title. */
+.masthead .credit {
+  color: #8fb9bb;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .2px;
+}
+
+/* The Prime stamp. */
+#prime-stamp {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 25, 55, .72);
+  cursor: pointer;
+  animation: stamp-fade .2s ease-out;
+}
+#prime-stamp.out { opacity: 0; transition: opacity .25s; }
+#prime-stamp .stamp-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 34px 48px 26px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
+}
+#prime-stamp .stamp {
+  width: 190px;
+  height: auto;
+  color: #3b7f83;
+  transform: rotate(-9deg);
+  animation: stamp-thud .45s cubic-bezier(.2, 1.6, .4, 1) both;
+}
+#prime-stamp .stamp-line { margin: 18px 0 4px; font-size: 18px; font-weight: 700; color: #081937; }
+#prime-stamp .stamp-by { margin: 0; font-size: 13px; color: #5a5c65; }
+#prime-stamp .stamp-card { cursor: default; }
+#prime-stamp .stamp-games { margin: 20px 0 0; padding-top: 16px; border-top: 1px solid #e3e6eb; display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; }
+#prime-stamp .stamp-games h4 { flex-basis: 100%; margin: 0 0 2px; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: #3b7f83; }
+#prime-stamp .stamp-games a { display: inline-block; padding: 7px 16px; border-radius: 6px; background: #081937; color: #fff; font-size: 13px; font-weight: 600; text-decoration: none; }
+#prime-stamp .stamp-games a:hover { background: #3b7f83; }
+#prime-stamp .stamp-hint { margin: 16px 0 0; font-size: 11px; color: #9aa0ad; }
+@keyframes stamp-thud {
+  0% { transform: rotate(-9deg) scale(2.6); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: rotate(-9deg) scale(1); opacity: 1; }
+}
+@keyframes stamp-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  #prime-stamp, #prime-stamp .stamp { animation: none; }
+}
