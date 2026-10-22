@@ -91,28 +91,57 @@ window.PrimeChase = (() => {
       // Within a cell, an exiting property wins, then the bigger one.
       if (!prev || (near && !prev.power) || (near === prev.power && (r.units || 0) > (prev.units || 0))) {
         seen.set(key, { x: p.x, y: p.y, name: r.name, city: r.city, state: r.state,
-          units: r.units || 0, power: Boolean(near), eaten: false });
+          units: r.units || 0, power: Boolean(near), eaten: false,
+          yrs: r.exit_year ? r.exit_year - thisYear : null });
       }
     });
     let dots = [...seen.values()];
     if (dots.length > MAX_DOTS) {
-      // Too many to play with: keep every exiting one, sample the rest evenly.
-      const power = dots.filter((d) => d.power);
-      const rest = dots.filter((d) => !d.power);
-      const step = rest.length / Math.max(1, MAX_DOTS - Math.min(power.length, 12));
+      // Too many to play with: keep an even sample, left to right, so every
+      // part of the board keeps its share. The step is always more than one,
+      // so no property is kept twice.
+      dots.sort((a, b) => a.x - b.x || a.y - b.y);
+      const step = dots.length / MAX_DOTS;
       const kept = [];
-      for (let i = 0; i < rest.length; i += step) kept.push(rest[Math.floor(i)]);
-      dots = [...power.slice(0, 12), ...kept];
+      for (let i = 0; i < MAX_DOTS; i++) kept.push(dots[Math.floor(i * step)]);
+      dots = kept;
     }
-    // Power dots are the reward, so cap them; the rest revert to plain dots.
-    let powers = dots.filter((d) => d.power).sort((a, b) => b.units - a.units);
-    powers.slice(6).forEach((d) => { d.power = false; });
-    if (!powers.length && dots.length > 8) {
-      // Nothing exiting soon in view: promote the four largest so the game
-      // still has a way to turn the tables.
-      [...dots].sort((a, b) => b.units - a.units).slice(0, 4).forEach((d) => { d.power = true; });
-    }
+    pickPowers(dots);
     return dots;
+  }
+
+  /* Six big dots, spread across the board. Taking the six largest exiting
+     properties put them all wherever exits happen to bunch up (north Georgia,
+     on a Southeast view), which left most of the map with no way to turn the
+     tables. So each quarter of the board gets the property in it closest to
+     its program exit, and the last two go to exiting properties as far from
+     the others as possible. */
+  function pickPowers(dots) {
+    dots.forEach((d) => { d.power = false; });
+    if (dots.length < 8) return;
+    const soonest = (a, b) => {
+      const ya = a.yrs !== null && a.yrs >= 0 ? a.yrs : 999;
+      const yb = b.yrs !== null && b.yrs >= 0 ? b.yrs : 999;
+      return ya - yb || b.units - a.units;
+    };
+    const chosen = [];
+    const midX = W / 2, midY = (TOP + H) / 2;
+    [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(([qx, qy]) => {
+      const inQ = dots.filter((d) => (d.x >= midX) === Boolean(qx) && (d.y >= midY) === Boolean(qy));
+      if (inQ.length) chosen.push(inQ.sort(soonest)[0]);
+    });
+    const exiting = dots.filter((d) => d.yrs !== null && d.yrs >= 0 && d.yrs <= 5 && !chosen.includes(d));
+    const pool = exiting.length ? exiting : dots.filter((d) => !chosen.includes(d));
+    while (chosen.length < 6 && pool.length) {
+      let best = null, bestGap = -1;
+      pool.forEach((d) => {
+        const gap = Math.min(...chosen.map((c) => Math.hypot(c.x - d.x, c.y - d.y)));
+        if (gap > bestGap) { bestGap = gap; best = d; }
+      });
+      chosen.push(best);
+      pool.splice(pool.indexOf(best), 1);
+    }
+    chosen.forEach((d) => { d.power = true; });
   }
 
   function newChasers(level) {
@@ -373,7 +402,7 @@ window.PrimeChase = (() => {
     const lines = state.phase === "intro" ? [
       ["Prime Chase", 26, 800, C.navy],
       ["Collect every property in view before the Red Tape catches you.", 14, 500, C.slate],
-      ["Big seafoam dots are properties exiting within five years. Grab one", 14, 500, C.slate],
+      ["Big seafoam dots are the properties closest to their program exit. Grab one", 14, 500, C.slate],
       ["and the Red Tape runs scared for a few seconds. Catch it then.", 14, 500, C.slate],
       ["Run off any edge to come back on the other side.", 14, 500, C.slate],
       [`${ROUNDS} rounds, with more Red Tape each round.`, 14, 500, C.slate],
