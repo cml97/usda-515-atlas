@@ -417,7 +417,6 @@ window.AtlasExport = (() => {
       views: [{ showGridLines: false }],
     });
     const s = stats();
-    const w = Atlas.primeWeights();
     const meta = Atlas.meta || {};
     const us = (iso) => (iso && iso.length >= 10 ? `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}` : "");
     const today = new Date();
@@ -426,7 +425,7 @@ window.AtlasExport = (() => {
     // Two tables side by side, with a narrow gutter between.
     ws.columns = [
       { width: 30 }, { width: 14 }, { width: 14 }, { width: 4 },
-      { width: 30 }, { width: 14 }, { width: 14 },
+      { width: 34 }, { width: 18 }, { width: 12 },
     ];
     let r = pageHead(ws, "Portfolio Summary", entry.name, 7);
 
@@ -509,8 +508,22 @@ window.AtlasExport = (() => {
 
     let right = table(5, r, "By Exit Horizon", ["Exit Year", "Properties", "Units"],
       tallyRows((x) => (x.exit_year ? Atlas.horizonLabel(x.exit_year) : "Not Reported")), f3, tot);
-    right = table(5, right + 1, "Prime Score Weights", ["Factor", "Weight"],
-      Atlas.PRIME_FACTORS.map(({ key, label }) => [bookCase(label), w[key]]), [null, "0"], null);
+    // The smallest and largest property by unit count. Where several tie,
+    // the first by name is shown and the rest are counted beside it.
+    const sized = rows.filter((x) => Number(x.units) > 0);
+    if (sized.length) {
+      const byName = (a, b) => tc(a.name).localeCompare(tc(b.name));
+      const pick = (target) => {
+        const hits = sized.filter((x) => Number(x.units) === target).sort(byName);
+        const name = tc(hits[0].name) + (hits.length > 1 ? ` (+${hits.length - 1} tied)` : "");
+        return [name, `${tc(hits[0].city)}, ${hits[0].state || ""}`.replace(/^, /, ""), target];
+      };
+      const min = Math.min(...sized.map((x) => Number(x.units)));
+      const max = Math.max(...sized.map((x) => Number(x.units)));
+      right = table(5, right + 1, "Property Size Range", ["Property", "Location", "Units"],
+        [["Smallest", ...pick(min)], ["Largest", ...pick(max)]].map(([lab, name, place, units]) =>
+          [`${lab}: ${name}`, place, units]), [null, null, "#,##0"], null);
+    }
 
     if (s.missing > 0) {
       const have = new Set(records.map((x) => String(x.id)));
