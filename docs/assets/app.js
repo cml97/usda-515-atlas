@@ -1712,6 +1712,8 @@ const Atlas = (() => {
         </dl>
       </section>
 
+      ${rentStandardSection(d)}
+
       ${designationSection(d)}
 
       <section>
@@ -1725,6 +1727,7 @@ const Atlas = (() => {
           <dt>Loan amount (source)</dt><dd>${money(d.loan_amt) || "-"}</dd>
           <dt>Rate at closing</dt><dd>${d.interest_rate !== null && d.interest_rate !== undefined ? d.interest_rate + "%" : "-"}</dd>
           <dt>Original loan term</dt><dd>${d.orig_loan_term ? Number(d.orig_loan_term).toFixed(2).replace(/\.00$/, "") + " yrs" : "-"}</dd>
+          <dt>Amortization</dt><dd>${d.amortization_years ? d.amortization_years + " yrs" : "-"}${d.amortization_end_year ? ` <span class="muted">to ${d.amortization_end_year}</span>` : ""}</dd>
           <dt>FY of obligation</dt><dd>${d.fy_loan_obligation || "-"}</dd>
           <dt>Remaining term</dt><dd>${d.remaining_term_days ? Math.round(d.remaining_term_days).toLocaleString() + " days" : "-"}</dd>
           <dt>Date of operation</dt><dd>${esc(d.date_of_operation) || "-"}</dd>
@@ -1743,6 +1746,55 @@ const Atlas = (() => {
         </dl>
         ${d.lat && d.lon ? `<p class="note"><a href="https://www.google.com/maps?q=${d.lat},${d.lon}" target="_blank" rel="noopener">Open in Google Maps</a></p>` : ""}
         <p class="note">Loan figures come from the single loan record USDA publishes per property in the program exit file. A property can carry more debt than one line shows.</p>
+      </section>
+    `;
+  }
+
+  /** HUD fair market rent and area income limits, for the detail page. */
+  function rentStandardSection(d) {
+    const fmr = d.fmr_by_bedroom || null;
+    const il = d.income_limits || null;
+    if (!fmr && !il && !d.area_median_income) return "";
+
+    const beds = fmr
+      ? [0, 1, 2, 3, 4]
+          .filter((n) => fmr[n] || fmr[String(n)])
+          .map((n) => {
+            const v = fmr[n] || fmr[String(n)];
+            return `<div class="cell"><b>${money(v)}</b><span>${n === 0 ? "Studio" : n + " BR"}</span></div>`;
+          })
+          .join("")
+      : "";
+
+    const sizes = [1, 2, 3, 4];
+    const band = (pctKey) => {
+      const row = il ? il[pctKey] || il[String(pctKey)] : null;
+      if (!row) return "";
+      const cells = sizes
+        .map((n) => money(row[n] || row[String(n)]))
+        .filter(Boolean)
+        .join(" / ");
+      return cells ? `<dt>${pctKey}% of AMI</dt><dd>${cells}</dd>` : "";
+    };
+
+    return `
+      <section>
+        <h3>Area rents and income limits</h3>
+        ${beds ? `<div class="mix">${beds}</div><div style="height:9px"></div>` : ""}
+        <dl class="kv">
+          ${d.fmr_area ? `<dt>FMR area</dt><dd>${esc(d.fmr_area)}${d.fmr_year ? ` <span class="muted">FY${esc(String(d.fmr_year))}</span>` : ""}</dd>` : ""}
+          ${d.fmr_basis ? `<dt>FMR basis</dt><dd>${d.fmr_basis === "zip" ? "Small area, this ZIP" : "Area wide"}</dd>` : ""}
+          ${d.area_median_income ? `<dt>Area median income</dt><dd>${money(d.area_median_income)}</dd>` : ""}
+          ${il ? `<dt>Household size</dt><dd><span class="muted">1 / 2 / 3 / 4 person</span></dd>` : ""}
+          ${band(30)}
+          ${band(50)}
+          ${band(80)}
+        </dl>
+        <p class="note">Fair market rent is a gross standard. It assumes the tenant pays the
+        utilities, so a rent is compared against it by adding the utility allowance to basic rent
+        first. Income limits here are HUD's Section 8 limits. A LIHTC property runs on the separate
+        multifamily tax subsidy limits, which can sit higher than these where hold harmless
+        applies.</p>
       </section>
     `;
   }
@@ -1833,7 +1885,7 @@ const Atlas = (() => {
     PROGRAMS, RENTAL, STATE_NAMES,
     load, apply, summarize, readFilters, buildFilterBar,
     desigYears, basisNow, basisNext, basisRank, basisLabel,
-    openDrawer, openDetail, detailSections, detail, paintManagerBanner, carryParamsIntoNav, horizonClass, horizonLabel, horizonColors, HORIZONS, titleCase, placeCase, num, pct, money,
+    openDrawer, openDetail, detailSections, rentStandardSection, detail, paintManagerBanner, carryParamsIntoNav, horizonClass, horizonLabel, horizonColors, HORIZONS, titleCase, placeCase, num, pct, money,
     lock, unlock, signOut, sessionEmail,
     normManager, managers, managerParam,
     chipField, segField, stateMatches, statesFromUrl,
