@@ -1,0 +1,40 @@
+diff --git a/docs/assets/app.js b/docs/assets/app.js
+index 233b3c5..46f1329 100644
+--- a/docs/assets/app.js
++++ b/docs/assets/app.js
+@@ -1566,6 +1566,26 @@ const Atlas = (() => {
+     document.body.classList.remove("drawer-open");
+   }
+ 
++  /**
++   * The management agent, rendered as a link to every property that firm
++   * manages. USDA spells the same firm several ways, so the link carries the
++   * folded key the ?mgmt= filter expects rather than the raw string, and the
++   * count is taken from the same fold so the number and the destination agree.
++   * A firm with a single property gets no link, because the filtered table
++   * would only show the property already on screen.
++   */
++  function managerLink(d) {
++    const label = titleCase(d.management);
++    if (!label) return "-";
++    const key = normManager(d.management);
++    if (!key) return label;
++    const n = index.filter((r) => normManager(r.management) === key).length;
++    if (n <= 1) return label;
++    return `<a href="index.html?mgmt=${encodeURIComponent(key)}"
++      title="See every USDA property this firm manages">${label}</a>
++      <span class="muted">(${n.toLocaleString()} properties)</span>`;
++  }
++
+   /** The body of a property's detail, shared by the slide-over drawer and the
+       standalone detail page so the two can never drift apart. */
+   function detailSections(d) {
+@@ -1687,7 +1707,7 @@ const Atlas = (() => {
+           <dt>Borrower</dt><dd>${titleCase(d.borrower_name) || "-"}</dd>
+           <dt>Borrower type</dt><dd>${esc(d.borrower_type) || "-"}</dd>
+           <dt>Borrower location</dt><dd>${placeCase(d.borrower_city_state) || "-"}</dd>
+-          <dt>Management agent</dt><dd>${titleCase(d.management) || "-"}</dd>
++          <dt>Management agent</dt><dd>${managerLink(d)}</dd>
+           <dt>Profit type</dt><dd>${esc(d.profit_type) || "-"}</dd>
+           <dt>Loan amount (source)</dt><dd>${money(d.loan_amt) || "-"}</dd>
+           <dt>Rate at closing</dt><dd>${d.interest_rate !== null && d.interest_rate !== undefined ? d.interest_rate + "%" : "-"}</dd>
