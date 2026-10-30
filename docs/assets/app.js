@@ -1510,8 +1510,21 @@ const Atlas = (() => {
       btn.textContent = n > 0 ? `Clear all (${n})` : "Clear all";
     }
 
-    // Restore the last search, then let an explicit link override it.
-    const saved = storedFilters();
+    /* Arriving on a management agent link is an explicit act, so it shows
+       every property that firm manages rather than that firm inside whatever
+       search the reader last left in the bar. The stored filters are cleared
+       rather than merely skipped, so the bar and the saved session agree and
+       Clear all does not offer to clear a filter that is no longer applied.
+       A ?state= riding along with the link still applies below, because the
+       Companies page sends that deliberately when its scope is set to a state. */
+    const fromManagerLink = Boolean(managerParam());
+    if (fromManagerLink) {
+      clearStoredFilters();
+      /* The selected-only flag survives in its own key and would quietly cut
+         the firm's list down to whatever was ticked earlier. */
+      setOnlySelected(false);
+    }
+    const saved = fromManagerLink ? null : storedFilters();
     if (saved) {
       state.set((saved.states || []).filter((c) => presentStates.has(c)));
       county.set(saved.counties || []);
