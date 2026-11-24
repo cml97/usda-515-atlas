@@ -1,0 +1,3235 @@
+01001Autauga
+01003Baldwin
+01005Barbour
+01007Bibb
+01009Blount
+01011Bullock
+01013Butler
+01015Calhoun
+01017Chambers
+01019Cherokee
+01021Chilton
+01023Choctaw
+01025Clarke
+01027Clay
+01029Cleburne
+01031Coffee
+01033Colbert
+01035Conecuh
+01037Coosa
+01039Covington
+01041Crenshaw
+01043Cullman
+01045Dale
+01047Dallas
+01049DeKalb
+01051Elmore
+01053Escambia
+01055Etowah
+01057Fayette
+01059Franklin
+01061Geneva
+01063Greene
+01065Hale
+01067Henry
+01069Houston
+01071Jackson
+01073Jefferson
+01075Lamar
+01077Lauderdale
+01079Lawrence
+01081Lee
+01083Limestone
+01085Lowndes
+01087Macon
+01089Madison
+01091Marengo
+01093Marion
+01095Marshall
+01097Mobile
+01099Monroe
+01101Montgomery
+01103Morgan
+01105Perry
+01107Pickens
+01109Pike
+01111Randolph
+01113Russell
+01115St. Clair
+01117Shelby
+01119Sumter
+01121Talladega
+01123Tallapoosa
+01125Tuscaloosa
+01127Walker
+01129Washington
+01131Wilcox
+01133Winston
+02013~Aleutians East Borough
+02016~Aleutians West Census Area
+02020~Anchorage Municipality
+02050~Bethel Census Area
+02060~Bristol Bay Borough
+02063~Chugach Census Area
+02066~Copper River Census Area
+02068~Denali Borough
+02070~Dillingham Census Area
+02090~Fairbanks North Star Borough
+02100~Haines Borough
+02105~Hoonah-Angoon Census Area
+02110~Juneau City and Borough
+02122~Kenai Peninsula Borough
+02130~Ketchikan Gateway Borough
+02150~Kodiak Island Borough
+02158~Kusilvak Census Area
+02164~Lake and Peninsula Borough
+02170~Matanuska-Susitna Borough
+02180~Nome Census Area
+02185~North Slope Borough
+02188~Northwest Arctic Borough
+02195~Petersburg Borough
+02198~Prince of Wales-Hyder Census Area
+02220~Sitka City and Borough
+02230~Skagway Municipality
+02240~Southeast Fairbanks Census Area
+02275~Wrangell City and Borough
+02282~Yakutat City and Borough
+02290~Yukon-Koyukuk Census Area
+04001Apache
+04003Cochise
+04005Coconino
+04007Gila
+04009Graham
+04011Greenlee
+04012La Paz
+04013Maricopa
+04015Mohave
+04017Navajo
+04019Pima
+04021Pinal
+04023Santa Cruz
+04025Yavapai
+04027Yuma
+05001Arkansas
+05003Ashley
+05005Baxter
+05007Benton
+05009Boone
+05011Bradley
+05013Calhoun
+05015Carroll
+05017Chicot
+05019Clark
+05021Clay
+05023Cleburne
+05025Cleveland
+05027Columbia
+05029Conway
+05031Craighead
+05033Crawford
+05035Crittenden
+05037Cross
+05039Dallas
+05041Desha
+05043Drew
+05045Faulkner
+05047Franklin
+05049Fulton
+05051Garland
+05053Grant
+05055Greene
+05057Hempstead
+05059Hot Spring
+05061Howard
+05063Independence
+05065Izard
+05067Jackson
+05069Jefferson
+05071Johnson
+05073Lafayette
+05075Lawrence
+05077Lee
+05079Lincoln
+05081Little River
+05083Logan
+05085Lonoke
+05087Madison
+05089Marion
+05091Miller
+05093Mississippi
+05095Monroe
+05097Montgomery
+05099Nevada
+05101Newton
+05103Ouachita
+05105Perry
+05107Phillips
+05109Pike
+05111Poinsett
+05113Polk
+05115Pope
+05117Prairie
+05119Pulaski
+05121Randolph
+05123St. Francis
+05125Saline
+05127Scott
+05129Searcy
+05131Sebastian
+05133Sevier
+05135Sharp
+05137Stone
+05139Union
+05141Van Buren
+05143Washington
+05145White
+05147Woodruff
+05149Yell
+06001Alameda
+06003Alpine
+06005Amador
+06007Butte
+06009Calaveras
+06011Colusa
+06013Contra Costa
+06015Del Norte
+06017El Dorado
+06019Fresno
+06021Glenn
+06023Humboldt
+06025Imperial
+06027Inyo
+06029Kern
+06031Kings
+06033Lake
+06035Lassen
+06037Los Angeles
+06039Madera
+06041Marin
+06043Mariposa
+06045Mendocino
+06047Merced
+06049Modoc
+06051Mono
+06053Monterey
+06055Napa
+06057Nevada
+06059Orange
+06061Placer
+06063Plumas
+06065Riverside
+06067Sacramento
+06069San Benito
+06071San Bernardino
+06073San Diego
+06075San Francisco
+06077San Joaquin
+06079San Luis Obispo
+06081San Mateo
+06083Santa Barbara
+06085Santa Clara
+06087Santa Cruz
+06089Shasta
+06091Sierra
+06093Siskiyou
+06095Solano
+06097Sonoma
+06099Stanislaus
+06101Sutter
+06103Tehama
+06105Trinity
+06107Tulare
+06109Tuolumne
+06111Ventura
+06113Yolo
+06115Yuba
+08001Adams
+08003Alamosa
+08005Arapahoe
+08007Archuleta
+08009Baca
+08011Bent
+08013Boulder
+08014Broomfield
+08015Chaffee
+08017Cheyenne
+08019Clear Creek
+08021Conejos
+08023Costilla
+08025Crowley
+08027Custer
+08029Delta
+08031Denver
+08033Dolores
+08035Douglas
+08037Eagle
+08039Elbert
+08041El Paso
+08043Fremont
+08045Garfield
+08047Gilpin
+08049Grand
+08051Gunnison
+08053Hinsdale
+08055Huerfano
+08057Jackson
+08059Jefferson
+08061Kiowa
+08063Kit Carson
+08065Lake
+08067La Plata
+08069Larimer
+08071Las Animas
+08073Lincoln
+08075Logan
+08077Mesa
+08079Mineral
+08081Moffat
+08083Montezuma
+08085Montrose
+08087Morgan
+08089Otero
+08091Ouray
+08093Park
+08095Phillips
+08097Pitkin
+08099Prowers
+08101Pueblo
+08103Rio Blanco
+08105Rio Grande
+08107Routt
+08109Saguache
+08111San Juan
+08113San Miguel
+08115Sedgwick
+08117Summit
+08119Teller
+08121Washington
+08123Weld
+08125Yuma
+09001Fairfield
+09003Hartford
+09005Litchfield
+09007Middlesex
+09009New Haven
+09011New London
+09013Tolland
+09015Windham
+10001Kent
+10003New Castle
+10005Sussex
+11001~District of Columbia
+12001Alachua
+12003Baker
+12005Bay
+12007Bradford
+12009Brevard
+12011Broward
+12013Calhoun
+12015Charlotte
+12017Citrus
+12019Clay
+12021Collier
+12023Columbia
+12027DeSoto
+12029Dixie
+12031Duval
+12033Escambia
+12035Flagler
+12037Franklin
+12039Gadsden
+12041Gilchrist
+12043Glades
+12045Gulf
+12047Hamilton
+12049Hardee
+12051Hendry
+12053Hernando
+12055Highlands
+12057Hillsborough
+12059Holmes
+12061Indian River
+12063Jackson
+12065Jefferson
+12067Lafayette
+12069Lake
+12071Lee
+12073Leon
+12075Levy
+12077Liberty
+12079Madison
+12081Manatee
+12083Marion
+12085Martin
+12086Miami-Dade
+12087Monroe
+12089Nassau
+12091Okaloosa
+12093Okeechobee
+12095Orange
+12097Osceola
+12099Palm Beach
+12101Pasco
+12103Pinellas
+12105Polk
+12107Putnam
+12109St. Johns
+12111St. Lucie
+12113Santa Rosa
+12115Sarasota
+12117Seminole
+12119Sumter
+12121Suwannee
+12123Taylor
+12125Union
+12127Volusia
+12129Wakulla
+12131Walton
+12133Washington
+13001Appling
+13003Atkinson
+13005Bacon
+13007Baker
+13009Baldwin
+13011Banks
+13013Barrow
+13015Bartow
+13017Ben Hill
+13019Berrien
+13021Bibb
+13023Bleckley
+13025Brantley
+13027Brooks
+13029Bryan
+13031Bulloch
+13033Burke
+13035Butts
+13037Calhoun
+13039Camden
+13043Candler
+13045Carroll
+13047Catoosa
+13049Charlton
+13051Chatham
+13053Chattahoochee
+13055Chattooga
+13057Cherokee
+13059Clarke
+13061Clay
+13063Clayton
+13065Clinch
+13067Cobb
+13069Coffee
+13071Colquitt
+13073Columbia
+13075Cook
+13077Coweta
+13079Crawford
+13081Crisp
+13083Dade
+13085Dawson
+13087Decatur
+13089DeKalb
+13091Dodge
+13093Dooly
+13095Dougherty
+13097Douglas
+13099Early
+13101Echols
+13103Effingham
+13105Elbert
+13107Emanuel
+13109Evans
+13111Fannin
+13113Fayette
+13115Floyd
+13117Forsyth
+13119Franklin
+13121Fulton
+13123Gilmer
+13125Glascock
+13127Glynn
+13129Gordon
+13131Grady
+13133Greene
+13135Gwinnett
+13137Habersham
+13139Hall
+13141Hancock
+13143Haralson
+13145Harris
+13147Hart
+13149Heard
+13151Henry
+13153Houston
+13155Irwin
+13157Jackson
+13159Jasper
+13161Jeff Davis
+13163Jefferson
+13165Jenkins
+13167Johnson
+13169Jones
+13171Lamar
+13173Lanier
+13175Laurens
+13177Lee
+13179Liberty
+13181Lincoln
+13183Long
+13185Lowndes
+13187Lumpkin
+13189McDuffie
+13191McIntosh
+13193Macon
+13195Madison
+13197Marion
+13199Meriwether
+13201Miller
+13205Mitchell
+13207Monroe
+13209Montgomery
+13211Morgan
+13213Murray
+13215Muscogee
+13217Newton
+13219Oconee
+13221Oglethorpe
+13223Paulding
+13225Peach
+13227Pickens
+13229Pierce
+13231Pike
+13233Polk
+13235Pulaski
+13237Putnam
+13239Quitman
+13241Rabun
+13243Randolph
+13245Richmond
+13247Rockdale
+13249Schley
+13251Screven
+13253Seminole
+13255Spalding
+13257Stephens
+13259Stewart
+13261Sumter
+13263Talbot
+13265Taliaferro
+13267Tattnall
+13269Taylor
+13271Telfair
+13273Terrell
+13275Thomas
+13277Tift
+13279Toombs
+13281Towns
+13283Treutlen
+13285Troup
+13287Turner
+13289Twiggs
+13291Union
+13293Upson
+13295Walker
+13297Walton
+13299Ware
+13301Warren
+13303Washington
+13305Wayne
+13307Webster
+13309Wheeler
+13311White
+13313Whitfield
+13315Wilcox
+13317Wilkes
+13319Wilkinson
+13321Worth
+15001Hawaii
+15003Honolulu
+15005Kalawao
+15007Kauai
+15009Maui
+16001Ada
+16003Adams
+16005Bannock
+16007Bear Lake
+16009Benewah
+16011Bingham
+16013Blaine
+16015Boise
+16017Bonner
+16019Bonneville
+16021Boundary
+16023Butte
+16025Camas
+16027Canyon
+16029Caribou
+16031Cassia
+16033Clark
+16035Clearwater
+16037Custer
+16039Elmore
+16041Franklin
+16043Fremont
+16045Gem
+16047Gooding
+16049Idaho
+16051Jefferson
+16053Jerome
+16055Kootenai
+16057Latah
+16059Lemhi
+16061Lewis
+16063Lincoln
+16065Madison
+16067Minidoka
+16069Nez Perce
+16071Oneida
+16073Owyhee
+16075Payette
+16077Power
+16079Shoshone
+16081Teton
+16083Twin Falls
+16085Valley
+16087Washington
+17001Adams
+17003Alexander
+17005Bond
+17007Boone
+17009Brown
+17011Bureau
+17013Calhoun
+17015Carroll
+17017Cass
+17019Champaign
+17021Christian
+17023Clark
+17025Clay
+17027Clinton
+17029Coles
+17031Cook
+17033Crawford
+17035Cumberland
+17037DeKalb
+17039De Witt
+17041Douglas
+17043DuPage
+17045Edgar
+17047Edwards
+17049Effingham
+17051Fayette
+17053Ford
+17055Franklin
+17057Fulton
+17059Gallatin
+17061Greene
+17063Grundy
+17065Hamilton
+17067Hancock
+17069Hardin
+17071Henderson
+17073Henry
+17075Iroquois
+17077Jackson
+17079Jasper
+17081Jefferson
+17083Jersey
+17085Jo Daviess
+17087Johnson
+17089Kane
+17091Kankakee
+17093Kendall
+17095Knox
+17097Lake
+17099LaSalle
+17101Lawrence
+17103Lee
+17105Livingston
+17107Logan
+17109McDonough
+17111McHenry
+17113McLean
+17115Macon
+17117Macoupin
+17119Madison
+17121Marion
+17123Marshall
+17125Mason
+17127Massac
+17129Menard
+17131Mercer
+17133Monroe
+17135Montgomery
+17137Morgan
+17139Moultrie
+17141Ogle
+17143Peoria
+17145Perry
+17147Piatt
+17149Pike
+17151Pope
+17153Pulaski
+17155Putnam
+17157Randolph
+17159Richland
+17161Rock Island
+17163St. Clair
+17165Saline
+17167Sangamon
+17169Schuyler
+17171Scott
+17173Shelby
+17175Stark
+17177Stephenson
+17179Tazewell
+17181Union
+17183Vermilion
+17185Wabash
+17187Warren
+17189Washington
+17191Wayne
+17193White
+17195Whiteside
+17197Will
+17199Williamson
+17201Winnebago
+17203Woodford
+18001Adams
+18003Allen
+18005Bartholomew
+18007Benton
+18009Blackford
+18011Boone
+18013Brown
+18015Carroll
+18017Cass
+18019Clark
+18021Clay
+18023Clinton
+18025Crawford
+18027Daviess
+18029Dearborn
+18031Decatur
+18033DeKalb
+18035Delaware
+18037Dubois
+18039Elkhart
+18041Fayette
+18043Floyd
+18045Fountain
+18047Franklin
+18049Fulton
+18051Gibson
+18053Grant
+18055Greene
+18057Hamilton
+18059Hancock
+18061Harrison
+18063Hendricks
+18065Henry
+18067Howard
+18069Huntington
+18071Jackson
+18073Jasper
+18075Jay
+18077Jefferson
+18079Jennings
+18081Johnson
+18083Knox
+18085Kosciusko
+18087LaGrange
+18089Lake
+18091LaPorte
+18093Lawrence
+18095Madison
+18097Marion
+18099Marshall
+18101Martin
+18103Miami
+18105Monroe
+18107Montgomery
+18109Morgan
+18111Newton
+18113Noble
+18115Ohio
+18117Orange
+18119Owen
+18121Parke
+18123Perry
+18125Pike
+18127Porter
+18129Posey
+18131Pulaski
+18133Putnam
+18135Randolph
+18137Ripley
+18139Rush
+18141St. Joseph
+18143Scott
+18145Shelby
+18147Spencer
+18149Starke
+18151Steuben
+18153Sullivan
+18155Switzerland
+18157Tippecanoe
+18159Tipton
+18161Union
+18163Vanderburgh
+18165Vermillion
+18167Vigo
+18169Wabash
+18171Warren
+18173Warrick
+18175Washington
+18177Wayne
+18179Wells
+18181White
+18183Whitley
+19001Adair
+19003Adams
+19005Allamakee
+19007Appanoose
+19009Audubon
+19011Benton
+19013Black Hawk
+19015Boone
+19017Bremer
+19019Buchanan
+19021Buena Vista
+19023Butler
+19025Calhoun
+19027Carroll
+19029Cass
+19031Cedar
+19033Cerro Gordo
+19035Cherokee
+19037Chickasaw
+19039Clarke
+19041Clay
+19043Clayton
+19045Clinton
+19047Crawford
+19049Dallas
+19051Davis
+19053Decatur
+19055Delaware
+19057Des Moines
+19059Dickinson
+19061Dubuque
+19063Emmet
+19065Fayette
+19067Floyd
+19069Franklin
+19071Fremont
+19073Greene
+19075Grundy
+19077Guthrie
+19079Hamilton
+19081Hancock
+19083Hardin
+19085Harrison
+19087Henry
+19089Howard
+19091Humboldt
+19093Ida
+19095Iowa
+19097Jackson
+19099Jasper
+19101Jefferson
+19103Johnson
+19105Jones
+19107Keokuk
+19109Kossuth
+19111Lee
+19113Linn
+19115Louisa
+19117Lucas
+19119Lyon
+19121Madison
+19123Mahaska
+19125Marion
+19127Marshall
+19129Mills
+19131Mitchell
+19133Monona
+19135Monroe
+19137Montgomery
+19139Muscatine
+19141O'Brien
+19143Osceola
+19145Page
+19147Palo Alto
+19149Plymouth
+19151Pocahontas
+19153Polk
+19155Pottawattamie
+19157Poweshiek
+19159Ringgold
+19161Sac
+19163Scott
+19165Shelby
+19167Sioux
+19169Story
+19171Tama
+19173Taylor
+19175Union
+19177Van Buren
+19179Wapello
+19181Warren
+19183Washington
+19185Wayne
+19187Webster
+19189Winnebago
+19191Winneshiek
+19193Woodbury
+19195Worth
+19197Wright
+20001Allen
+20003Anderson
+20005Atchison
+20007Barber
+20009Barton
+20011Bourbon
+20013Brown
+20015Butler
+20017Chase
+20019Chautauqua
+20021Cherokee
+20023Cheyenne
+20025Clark
+20027Clay
+20029Cloud
+20031Coffey
+20033Comanche
+20035Cowley
+20037Crawford
+20039Decatur
+20041Dickinson
+20043Doniphan
+20045Douglas
+20047Edwards
+20049Elk
+20051Ellis
+20053Ellsworth
+20055Finney
+20057Ford
+20059Franklin
+20061Geary
+20063Gove
+20065Graham
+20067Grant
+20069Gray
+20071Greeley
+20073Greenwood
+20075Hamilton
+20077Harper
+20079Harvey
+20081Haskell
+20083Hodgeman
+20085Jackson
+20087Jefferson
+20089Jewell
+20091Johnson
+20093Kearny
+20095Kingman
+20097Kiowa
+20099Labette
+20101Lane
+20103Leavenworth
+20105Lincoln
+20107Linn
+20109Logan
+20111Lyon
+20113McPherson
+20115Marion
+20117Marshall
+20119Meade
+20121Miami
+20123Mitchell
+20125Montgomery
+20127Morris
+20129Morton
+20131Nemaha
+20133Neosho
+20135Ness
+20137Norton
+20139Osage
+20141Osborne
+20143Ottawa
+20145Pawnee
+20147Phillips
+20149Pottawatomie
+20151Pratt
+20153Rawlins
+20155Reno
+20157Republic
+20159Rice
+20161Riley
+20163Rooks
+20165Rush
+20167Russell
+20169Saline
+20171Scott
+20173Sedgwick
+20175Seward
+20177Shawnee
+20179Sheridan
+20181Sherman
+20183Smith
+20185Stafford
+20187Stanton
+20189Stevens
+20191Sumner
+20193Thomas
+20195Trego
+20197Wabaunsee
+20199Wallace
+20201Washington
+20203Wichita
+20205Wilson
+20207Woodson
+20209Wyandotte
+21001Adair
+21003Allen
+21005Anderson
+21007Ballard
+21009Barren
+21011Bath
+21013Bell
+21015Boone
+21017Bourbon
+21019Boyd
+21021Boyle
+21023Bracken
+21025Breathitt
+21027Breckinridge
+21029Bullitt
+21031Butler
+21033Caldwell
+21035Calloway
+21037Campbell
+21039Carlisle
+21041Carroll
+21043Carter
+21045Casey
+21047Christian
+21049Clark
+21051Clay
+21053Clinton
+21055Crittenden
+21057Cumberland
+21059Daviess
+21061Edmonson
+21063Elliott
+21065Estill
+21067Fayette
+21069Fleming
+21071Floyd
+21073Franklin
+21075Fulton
+21077Gallatin
+21079Garrard
+21081Grant
+21083Graves
+21085Grayson
+21087Green
+21089Greenup
+21091Hancock
+21093Hardin
+21095Harlan
+21097Harrison
+21099Hart
+21101Henderson
+21103Henry
+21105Hickman
+21107Hopkins
+21109Jackson
+21111Jefferson
+21113Jessamine
+21115Johnson
+21117Kenton
+21119Knott
+21121Knox
+21123Larue
+21125Laurel
+21127Lawrence
+21129Lee
+21131Leslie
+21133Letcher
+21135Lewis
+21137Lincoln
+21139Livingston
+21141Logan
+21143Lyon
+21145McCracken
+21147McCreary
+21149McLean
+21151Madison
+21153Magoffin
+21155Marion
+21157Marshall
+21159Martin
+21161Mason
+21163Meade
+21165Menifee
+21167Mercer
+21169Metcalfe
+21171Monroe
+21173Montgomery
+21175Morgan
+21177Muhlenberg
+21179Nelson
+21181Nicholas
+21183Ohio
+21185Oldham
+21187Owen
+21189Owsley
+21191Pendleton
+21193Perry
+21195Pike
+21197Powell
+21199Pulaski
+21201Robertson
+21203Rockcastle
+21205Rowan
+21207Russell
+21209Scott
+21211Shelby
+21213Simpson
+21215Spencer
+21217Taylor
+21219Todd
+21221Trigg
+21223Trimble
+21225Union
+21227Warren
+21229Washington
+21231Wayne
+21233Webster
+21235Whitley
+21237Wolfe
+21239Woodford
+22001~Acadia Parish
+22003~Allen Parish
+22005~Ascension Parish
+22007~Assumption Parish
+22009~Avoyelles Parish
+22011~Beauregard Parish
+22013~Bienville Parish
+22015~Bossier Parish
+22017~Caddo Parish
+22019~Calcasieu Parish
+22021~Caldwell Parish
+22023~Cameron Parish
+22025~Catahoula Parish
+22027~Claiborne Parish
+22029~Concordia Parish
+22031~De Soto Parish
+22033~East Baton Rouge Parish
+22035~East Carroll Parish
+22037~East Feliciana Parish
+22039~Evangeline Parish
+22041~Franklin Parish
+22043~Grant Parish
+22045~Iberia Parish
+22047~Iberville Parish
+22049~Jackson Parish
+22051~Jefferson Parish
+22053~Jefferson Davis Parish
+22055~Lafayette Parish
+22057~Lafourche Parish
+22059~LaSalle Parish
+22061~Lincoln Parish
+22063~Livingston Parish
+22065~Madison Parish
+22067~Morehouse Parish
+22069~Natchitoches Parish
+22071~Orleans Parish
+22073~Ouachita Parish
+22075~Plaquemines Parish
+22077~Pointe Coupee Parish
+22079~Rapides Parish
+22081~Red River Parish
+22083~Richland Parish
+22085~Sabine Parish
+22087~St. Bernard Parish
+22089~St. Charles Parish
+22091~St. Helena Parish
+22093~St. James Parish
+22095~St. John the Baptist Parish
+22097~St. Landry Parish
+22099~St. Martin Parish
+22101~St. Mary Parish
+22103~St. Tammany Parish
+22105~Tangipahoa Parish
+22107~Tensas Parish
+22109~Terrebonne Parish
+22111~Union Parish
+22113~Vermilion Parish
+22115~Vernon Parish
+22117~Washington Parish
+22119~Webster Parish
+22121~West Baton Rouge Parish
+22123~West Carroll Parish
+22125~West Feliciana Parish
+22127~Winn Parish
+23001Androscoggin
+23003Aroostook
+23005Cumberland
+23007Franklin
+23009Hancock
+23011Kennebec
+23013Knox
+23015Lincoln
+23017Oxford
+23019Penobscot
+23021Piscataquis
+23023Sagadahoc
+23025Somerset
+23027Waldo
+23029Washington
+23031York
+24001Allegany
+24003Anne Arundel
+24005Baltimore
+24009Calvert
+24011Caroline
+24013Carroll
+24015Cecil
+24017Charles
+24019Dorchester
+24021Frederick
+24023Garrett
+24025Harford
+24027Howard
+24029Kent
+24031Montgomery
+24033Prince George's
+24035Queen Anne's
+24037St. Mary's
+24039Somerset
+24041Talbot
+24043Washington
+24045Wicomico
+24047Worcester
+24510~Baltimore city
+25001Barnstable
+25003Berkshire
+25005Bristol
+25007Dukes
+25009Essex
+25011Franklin
+25013Hampden
+25015Hampshire
+25017Middlesex
+25019Nantucket
+25021Norfolk
+25023Plymouth
+25025Suffolk
+25027Worcester
+26001Alcona
+26003Alger
+26005Allegan
+26007Alpena
+26009Antrim
+26011Arenac
+26013Baraga
+26015Barry
+26017Bay
+26019Benzie
+26021Berrien
+26023Branch
+26025Calhoun
+26027Cass
+26029Charlevoix
+26031Cheboygan
+26033Chippewa
+26035Clare
+26037Clinton
+26039Crawford
+26041Delta
+26043Dickinson
+26045Eaton
+26047Emmet
+26049Genesee
+26051Gladwin
+26053Gogebic
+26055Grand Traverse
+26057Gratiot
+26059Hillsdale
+26061Houghton
+26063Huron
+26065Ingham
+26067Ionia
+26069Iosco
+26071Iron
+26073Isabella
+26075Jackson
+26077Kalamazoo
+26079Kalkaska
+26081Kent
+26083Keweenaw
+26085Lake
+26087Lapeer
+26089Leelanau
+26091Lenawee
+26093Livingston
+26095Luce
+26097Mackinac
+26099Macomb
+26101Manistee
+26103Marquette
+26105Mason
+26107Mecosta
+26109Menominee
+26111Midland
+26113Missaukee
+26115Monroe
+26117Montcalm
+26119Montmorency
+26121Muskegon
+26123Newaygo
+26125Oakland
+26127Oceana
+26129Ogemaw
+26131Ontonagon
+26133Osceola
+26135Oscoda
+26137Otsego
+26139Ottawa
+26141Presque Isle
+26143Roscommon
+26145Saginaw
+26147St. Clair
+26149St. Joseph
+26151Sanilac
+26153Schoolcraft
+26155Shiawassee
+26157Tuscola
+26159Van Buren
+26161Washtenaw
+26163Wayne
+26165Wexford
+27001Aitkin
+27003Anoka
+27005Becker
+27007Beltrami
+27009Benton
+27011Big Stone
+27013Blue Earth
+27015Brown
+27017Carlton
+27019Carver
+27021Cass
+27023Chippewa
+27025Chisago
+27027Clay
+27029Clearwater
+27031Cook
+27033Cottonwood
+27035Crow Wing
+27037Dakota
+27039Dodge
+27041Douglas
+27043Faribault
+27045Fillmore
+27047Freeborn
+27049Goodhue
+27051Grant
+27053Hennepin
+27055Houston
+27057Hubbard
+27059Isanti
+27061Itasca
+27063Jackson
+27065Kanabec
+27067Kandiyohi
+27069Kittson
+27071Koochiching
+27073Lac qui Parle
+27075Lake
+27077Lake of the Woods
+27079Le Sueur
+27081Lincoln
+27083Lyon
+27085McLeod
+27087Mahnomen
+27089Marshall
+27091Martin
+27093Meeker
+27095Mille Lacs
+27097Morrison
+27099Mower
+27101Murray
+27103Nicollet
+27105Nobles
+27107Norman
+27109Olmsted
+27111Otter Tail
+27113Pennington
+27115Pine
+27117Pipestone
+27119Polk
+27121Pope
+27123Ramsey
+27125Red Lake
+27127Redwood
+27129Renville
+27131Rice
+27133Rock
+27135Roseau
+27137St. Louis
+27139Scott
+27141Sherburne
+27143Sibley
+27145Stearns
+27147Steele
+27149Stevens
+27151Swift
+27153Todd
+27155Traverse
+27157Wabasha
+27159Wadena
+27161Waseca
+27163Washington
+27165Watonwan
+27167Wilkin
+27169Winona
+27171Wright
+27173Yellow Medicine
+28001Adams
+28003Alcorn
+28005Amite
+28007Attala
+28009Benton
+28011Bolivar
+28013Calhoun
+28015Carroll
+28017Chickasaw
+28019Choctaw
+28021Claiborne
+28023Clarke
+28025Clay
+28027Coahoma
+28029Copiah
+28031Covington
+28033DeSoto
+28035Forrest
+28037Franklin
+28039George
+28041Greene
+28043Grenada
+28045Hancock
+28047Harrison
+28049Hinds
+28051Holmes
+28053Humphreys
+28055Issaquena
+28057Itawamba
+28059Jackson
+28061Jasper
+28063Jefferson
+28065Jefferson Davis
+28067Jones
+28069Kemper
+28071Lafayette
+28073Lamar
+28075Lauderdale
+28077Lawrence
+28079Leake
+28081Lee
+28083Leflore
+28085Lincoln
+28087Lowndes
+28089Madison
+28091Marion
+28093Marshall
+28095Monroe
+28097Montgomery
+28099Neshoba
+28101Newton
+28103Noxubee
+28105Oktibbeha
+28107Panola
+28109Pearl River
+28111Perry
+28113Pike
+28115Pontotoc
+28117Prentiss
+28119Quitman
+28121Rankin
+28123Scott
+28125Sharkey
+28127Simpson
+28129Smith
+28131Stone
+28133Sunflower
+28135Tallahatchie
+28137Tate
+28139Tippah
+28141Tishomingo
+28143Tunica
+28145Union
+28147Walthall
+28149Warren
+28151Washington
+28153Wayne
+28155Webster
+28157Wilkinson
+28159Winston
+28161Yalobusha
+28163Yazoo
+29001Adair
+29003Andrew
+29005Atchison
+29007Audrain
+29009Barry
+29011Barton
+29013Bates
+29015Benton
+29017Bollinger
+29019Boone
+29021Buchanan
+29023Butler
+29025Caldwell
+29027Callaway
+29029Camden
+29031Cape Girardeau
+29033Carroll
+29035Carter
+29037Cass
+29039Cedar
+29041Chariton
+29043Christian
+29045Clark
+29047Clay
+29049Clinton
+29051Cole
+29053Cooper
+29055Crawford
+29057Dade
+29059Dallas
+29061Daviess
+29063DeKalb
+29065Dent
+29067Douglas
+29069Dunklin
+29071Franklin
+29073Gasconade
+29075Gentry
+29077Greene
+29079Grundy
+29081Harrison
+29083Henry
+29085Hickory
+29087Holt
+29089Howard
+29091Howell
+29093Iron
+29095Jackson
+29097Jasper
+29099Jefferson
+29101Johnson
+29103Knox
+29105Laclede
+29107Lafayette
+29109Lawrence
+29111Lewis
+29113Lincoln
+29115Linn
+29117Livingston
+29119McDonald
+29121Macon
+29123Madison
+29125Maries
+29127Marion
+29129Mercer
+29131Miller
+29133Mississippi
+29135Moniteau
+29137Monroe
+29139Montgomery
+29141Morgan
+29143New Madrid
+29145Newton
+29147Nodaway
+29149Oregon
+29151Osage
+29153Ozark
+29155Pemiscot
+29157Perry
+29159Pettis
+29161Phelps
+29163Pike
+29165Platte
+29167Polk
+29169Pulaski
+29171Putnam
+29173Ralls
+29175Randolph
+29177Ray
+29179Reynolds
+29181Ripley
+29183St. Charles
+29185St. Clair
+29186Ste. Genevieve
+29187St. Francois
+29189St. Louis
+29195Saline
+29197Schuyler
+29199Scotland
+29201Scott
+29203Shannon
+29205Shelby
+29207Stoddard
+29209Stone
+29211Sullivan
+29213Taney
+29215Texas
+29217Vernon
+29219Warren
+29221Washington
+29223Wayne
+29225Webster
+29227Worth
+29229Wright
+29510~St. Louis city
+30001Beaverhead
+30003Big Horn
+30005Blaine
+30007Broadwater
+30009Carbon
+30011Carter
+30013Cascade
+30015Chouteau
+30017Custer
+30019Daniels
+30021Dawson
+30023Deer Lodge
+30025Fallon
+30027Fergus
+30029Flathead
+30031Gallatin
+30033Garfield
+30035Glacier
+30037Golden Valley
+30039Granite
+30041Hill
+30043Jefferson
+30045Judith Basin
+30047Lake
+30049Lewis and Clark
+30051Liberty
+30053Lincoln
+30055McCone
+30057Madison
+30059Meagher
+30061Mineral
+30063Missoula
+30065Musselshell
+30067Park
+30069Petroleum
+30071Phillips
+30073Pondera
+30075Powder River
+30077Powell
+30079Prairie
+30081Ravalli
+30083Richland
+30085Roosevelt
+30087Rosebud
+30089Sanders
+30091Sheridan
+30093Silver Bow
+30095Stillwater
+30097Sweet Grass
+30099Teton
+30101Toole
+30103Treasure
+30105Valley
+30107Wheatland
+30109Wibaux
+30111Yellowstone
+31001Adams
+31003Antelope
+31005Arthur
+31007Banner
+31009Blaine
+31011Boone
+31013Box Butte
+31015Boyd
+31017Brown
+31019Buffalo
+31021Burt
+31023Butler
+31025Cass
+31027Cedar
+31029Chase
+31031Cherry
+31033Cheyenne
+31035Clay
+31037Colfax
+31039Cuming
+31041Custer
+31043Dakota
+31045Dawes
+31047Dawson
+31049Deuel
+31051Dixon
+31053Dodge
+31055Douglas
+31057Dundy
+31059Fillmore
+31061Franklin
+31063Frontier
+31065Furnas
+31067Gage
+31069Garden
+31071Garfield
+31073Gosper
+31075Grant
+31077Greeley
+31079Hall
+31081Hamilton
+31083Harlan
+31085Hayes
+31087Hitchcock
+31089Holt
+31091Hooker
+31093Howard
+31095Jefferson
+31097Johnson
+31099Kearney
+31101Keith
+31103Keya Paha
+31105Kimball
+31107Knox
+31109Lancaster
+31111Lincoln
+31113Logan
+31115Loup
+31117McPherson
+31119Madison
+31121Merrick
+31123Morrill
+31125Nance
+31127Nemaha
+31129Nuckolls
+31131Otoe
+31133Pawnee
+31135Perkins
+31137Phelps
+31139Pierce
+31141Platte
+31143Polk
+31145Red Willow
+31147Richardson
+31149Rock
+31151Saline
+31153Sarpy
+31155Saunders
+31157Scotts Bluff
+31159Seward
+31161Sheridan
+31163Sherman
+31165Sioux
+31167Stanton
+31169Thayer
+31171Thomas
+31173Thurston
+31175Valley
+31177Washington
+31179Wayne
+31181Webster
+31183Wheeler
+31185York
+32001Churchill
+32003Clark
+32005Douglas
+32007Elko
+32009Esmeralda
+32011Eureka
+32013Humboldt
+32015Lander
+32017Lincoln
+32019Lyon
+32021Mineral
+32023Nye
+32027Pershing
+32029Storey
+32031Washoe
+32033White Pine
+32510~Carson City
+33001Belknap
+33003Carroll
+33005Cheshire
+33007Coos
+33009Grafton
+33011Hillsborough
+33013Merrimack
+33015Rockingham
+33017Strafford
+33019Sullivan
+34001Atlantic
+34003Bergen
+34005Burlington
+34007Camden
+34009Cape May
+34011Cumberland
+34013Essex
+34015Gloucester
+34017Hudson
+34019Hunterdon
+34021Mercer
+34023Middlesex
+34025Monmouth
+34027Morris
+34029Ocean
+34031Passaic
+34033Salem
+34035Somerset
+34037Sussex
+34039Union
+34041Warren
+35001Bernalillo
+35003Catron
+35005Chaves
+35006Cibola
+35007Colfax
+35009Curry
+35011De Baca
+35013Doña Ana
+35015Eddy
+35017Grant
+35019Guadalupe
+35021Harding
+35023Hidalgo
+35025Lea
+35027Lincoln
+35028Los Alamos
+35029Luna
+35031McKinley
+35033Mora
+35035Otero
+35037Quay
+35039Rio Arriba
+35041Roosevelt
+35043Sandoval
+35045San Juan
+35047San Miguel
+35049Santa Fe
+35051Sierra
+35053Socorro
+35055Taos
+35057Torrance
+35059Union
+35061Valencia
+36001Albany
+36003Allegany
+36005Bronx
+36007Broome
+36009Cattaraugus
+36011Cayuga
+36013Chautauqua
+36015Chemung
+36017Chenango
+36019Clinton
+36021Columbia
+36023Cortland
+36025Delaware
+36027Dutchess
+36029Erie
+36031Essex
+36033Franklin
+36035Fulton
+36037Genesee
+36039Greene
+36041Hamilton
+36043Herkimer
+36045Jefferson
+36047Kings
+36049Lewis
+36051Livingston
+36053Madison
+36055Monroe
+36057Montgomery
+36059Nassau
+36061New York
+36063Niagara
+36065Oneida
+36067Onondaga
+36069Ontario
+36071Orange
+36073Orleans
+36075Oswego
+36077Otsego
+36079Putnam
+36081Queens
+36083Rensselaer
+36085Richmond
+36087Rockland
+36089St. Lawrence
+36091Saratoga
+36093Schenectady
+36095Schoharie
+36097Schuyler
+36099Seneca
+36101Steuben
+36103Suffolk
+36105Sullivan
+36107Tioga
+36109Tompkins
+36111Ulster
+36113Warren
+36115Washington
+36117Wayne
+36119Westchester
+36121Wyoming
+36123Yates
+37001Alamance
+37003Alexander
+37005Alleghany
+37007Anson
+37009Ashe
+37011Avery
+37013Beaufort
+37015Bertie
+37017Bladen
+37019Brunswick
+37021Buncombe
+37023Burke
+37025Cabarrus
+37027Caldwell
+37029Camden
+37031Carteret
+37033Caswell
+37035Catawba
+37037Chatham
+37039Cherokee
+37041Chowan
+37043Clay
+37045Cleveland
+37047Columbus
+37049Craven
+37051Cumberland
+37053Currituck
+37055Dare
+37057Davidson
+37059Davie
+37061Duplin
+37063Durham
+37065Edgecombe
+37067Forsyth
+37069Franklin
+37071Gaston
+37073Gates
+37075Graham
+37077Granville
+37079Greene
+37081Guilford
+37083Halifax
+37085Harnett
+37087Haywood
+37089Henderson
+37091Hertford
+37093Hoke
+37095Hyde
+37097Iredell
+37099Jackson
+37101Johnston
+37103Jones
+37105Lee
+37107Lenoir
+37109Lincoln
+37111McDowell
+37113Macon
+37115Madison
+37117Martin
+37119Mecklenburg
+37121Mitchell
+37123Montgomery
+37125Moore
+37127Nash
+37129New Hanover
+37131Northampton
+37133Onslow
+37135Orange
+37137Pamlico
+37139Pasquotank
+37141Pender
+37143Perquimans
+37145Person
+37147Pitt
+37149Polk
+37151Randolph
+37153Richmond
+37155Robeson
+37157Rockingham
+37159Rowan
+37161Rutherford
+37163Sampson
+37165Scotland
+37167Stanly
+37169Stokes
+37171Surry
+37173Swain
+37175Transylvania
+37177Tyrrell
+37179Union
+37181Vance
+37183Wake
+37185Warren
+37187Washington
+37189Watauga
+37191Wayne
+37193Wilkes
+37195Wilson
+37197Yadkin
+37199Yancey
+38001Adams
+38003Barnes
+38005Benson
+38007Billings
+38009Bottineau
+38011Bowman
+38013Burke
+38015Burleigh
+38017Cass
+38019Cavalier
+38021Dickey
+38023Divide
+38025Dunn
+38027Eddy
+38029Emmons
+38031Foster
+38033Golden Valley
+38035Grand Forks
+38037Grant
+38039Griggs
+38041Hettinger
+38043Kidder
+38045LaMoure
+38047Logan
+38049McHenry
+38051McIntosh
+38053McKenzie
+38055McLean
+38057Mercer
+38059Morton
+38061Mountrail
+38063Nelson
+38065Oliver
+38067Pembina
+38069Pierce
+38071Ramsey
+38073Ransom
+38075Renville
+38077Richland
+38079Rolette
+38081Sargent
+38083Sheridan
+38085Sioux
+38087Slope
+38089Stark
+38091Steele
+38093Stutsman
+38095Towner
+38097Traill
+38099Walsh
+38101Ward
+38103Wells
+38105Williams
+39001Adams
+39003Allen
+39005Ashland
+39007Ashtabula
+39009Athens
+39011Auglaize
+39013Belmont
+39015Brown
+39017Butler
+39019Carroll
+39021Champaign
+39023Clark
+39025Clermont
+39027Clinton
+39029Columbiana
+39031Coshocton
+39033Crawford
+39035Cuyahoga
+39037Darke
+39039Defiance
+39041Delaware
+39043Erie
+39045Fairfield
+39047Fayette
+39049Franklin
+39051Fulton
+39053Gallia
+39055Geauga
+39057Greene
+39059Guernsey
+39061Hamilton
+39063Hancock
+39065Hardin
+39067Harrison
+39069Henry
+39071Highland
+39073Hocking
+39075Holmes
+39077Huron
+39079Jackson
+39081Jefferson
+39083Knox
+39085Lake
+39087Lawrence
+39089Licking
+39091Logan
+39093Lorain
+39095Lucas
+39097Madison
+39099Mahoning
+39101Marion
+39103Medina
+39105Meigs
+39107Mercer
+39109Miami
+39111Monroe
+39113Montgomery
+39115Morgan
+39117Morrow
+39119Muskingum
+39121Noble
+39123Ottawa
+39125Paulding
+39127Perry
+39129Pickaway
+39131Pike
+39133Portage
+39135Preble
+39137Putnam
+39139Richland
+39141Ross
+39143Sandusky
+39145Scioto
+39147Seneca
+39149Shelby
+39151Stark
+39153Summit
+39155Trumbull
+39157Tuscarawas
+39159Union
+39161Van Wert
+39163Vinton
+39165Warren
+39167Washington
+39169Wayne
+39171Williams
+39173Wood
+39175Wyandot
+40001Adair
+40003Alfalfa
+40005Atoka
+40007Beaver
+40009Beckham
+40011Blaine
+40013Bryan
+40015Caddo
+40017Canadian
+40019Carter
+40021Cherokee
+40023Choctaw
+40025Cimarron
+40027Cleveland
+40029Coal
+40031Comanche
+40033Cotton
+40035Craig
+40037Creek
+40039Custer
+40041Delaware
+40043Dewey
+40045Ellis
+40047Garfield
+40049Garvin
+40051Grady
+40053Grant
+40055Greer
+40057Harmon
+40059Harper
+40061Haskell
+40063Hughes
+40065Jackson
+40067Jefferson
+40069Johnston
+40071Kay
+40073Kingfisher
+40075Kiowa
+40077Latimer
+40079Le Flore
+40081Lincoln
+40083Logan
+40085Love
+40087McClain
+40089McCurtain
+40091McIntosh
+40093Major
+40095Marshall
+40097Mayes
+40099Murray
+40101Muskogee
+40103Noble
+40105Nowata
+40107Okfuskee
+40109Oklahoma
+40111Okmulgee
+40113Osage
+40115Ottawa
+40117Pawnee
+40119Payne
+40121Pittsburg
+40123Pontotoc
+40125Pottawatomie
+40127Pushmataha
+40129Roger Mills
+40131Rogers
+40133Seminole
+40135Sequoyah
+40137Stephens
+40139Texas
+40141Tillman
+40143Tulsa
+40145Wagoner
+40147Washington
+40149Washita
+40151Woods
+40153Woodward
+41001Baker
+41003Benton
+41005Clackamas
+41007Clatsop
+41009Columbia
+41011Coos
+41013Crook
+41015Curry
+41017Deschutes
+41019Douglas
+41021Gilliam
+41023Grant
+41025Harney
+41027Hood River
+41029Jackson
+41031Jefferson
+41033Josephine
+41035Klamath
+41037Lake
+41039Lane
+41041Lincoln
+41043Linn
+41045Malheur
+41047Marion
+41049Morrow
+41051Multnomah
+41053Polk
+41055Sherman
+41057Tillamook
+41059Umatilla
+41061Union
+41063Wallowa
+41065Wasco
+41067Washington
+41069Wheeler
+41071Yamhill
+42001Adams
+42003Allegheny
+42005Armstrong
+42007Beaver
+42009Bedford
+42011Berks
+42013Blair
+42015Bradford
+42017Bucks
+42019Butler
+42021Cambria
+42023Cameron
+42025Carbon
+42027Centre
+42029Chester
+42031Clarion
+42033Clearfield
+42035Clinton
+42037Columbia
+42039Crawford
+42041Cumberland
+42043Dauphin
+42045Delaware
+42047Elk
+42049Erie
+42051Fayette
+42053Forest
+42055Franklin
+42057Fulton
+42059Greene
+42061Huntingdon
+42063Indiana
+42065Jefferson
+42067Juniata
+42069Lackawanna
+42071Lancaster
+42073Lawrence
+42075Lebanon
+42077Lehigh
+42079Luzerne
+42081Lycoming
+42083McKean
+42085Mercer
+42087Mifflin
+42089Monroe
+42091Montgomery
+42093Montour
+42095Northampton
+42097Northumberland
+42099Perry
+42101Philadelphia
+42103Pike
+42105Potter
+42107Schuylkill
+42109Snyder
+42111Somerset
+42113Sullivan
+42115Susquehanna
+42117Tioga
+42119Union
+42121Venango
+42123Warren
+42125Washington
+42127Wayne
+42129Westmoreland
+42131Wyoming
+42133York
+44001Bristol
+44003Kent
+44005Newport
+44007Providence
+44009Washington
+45001Abbeville
+45003Aiken
+45005Allendale
+45007Anderson
+45009Bamberg
+45011Barnwell
+45013Beaufort
+45015Berkeley
+45017Calhoun
+45019Charleston
+45021Cherokee
+45023Chester
+45025Chesterfield
+45027Clarendon
+45029Colleton
+45031Darlington
+45033Dillon
+45035Dorchester
+45037Edgefield
+45039Fairfield
+45041Florence
+45043Georgetown
+45045Greenville
+45047Greenwood
+45049Hampton
+45051Horry
+45053Jasper
+45055Kershaw
+45057Lancaster
+45059Laurens
+45061Lee
+45063Lexington
+45065McCormick
+45067Marion
+45069Marlboro
+45071Newberry
+45073Oconee
+45075Orangeburg
+45077Pickens
+45079Richland
+45081Saluda
+45083Spartanburg
+45085Sumter
+45087Union
+45089Williamsburg
+45091York
+46003Aurora
+46005Beadle
+46007Bennett
+46009Bon Homme
+46011Brookings
+46013Brown
+46015Brule
+46017Buffalo
+46019Butte
+46021Campbell
+46023Charles Mix
+46025Clark
+46027Clay
+46029Codington
+46031Corson
+46033Custer
+46035Davison
+46037Day
+46039Deuel
+46041Dewey
+46043Douglas
+46045Edmunds
+46047Fall River
+46049Faulk
+46051Grant
+46053Gregory
+46055Haakon
+46057Hamlin
+46059Hand
+46061Hanson
+46063Harding
+46065Hughes
+46067Hutchinson
+46069Hyde
+46071Jackson
+46073Jerauld
+46075Jones
+46077Kingsbury
+46079Lake
+46081Lawrence
+46083Lincoln
+46085Lyman
+46087McCook
+46089McPherson
+46091Marshall
+46093Meade
+46095Mellette
+46097Miner
+46099Minnehaha
+46101Moody
+46102Oglala Lakota
+46103Pennington
+46105Perkins
+46107Potter
+46109Roberts
+46111Sanborn
+46115Spink
+46117Stanley
+46119Sully
+46121Todd
+46123Tripp
+46125Turner
+46127Union
+46129Walworth
+46135Yankton
+46137Ziebach
+47001Anderson
+47003Bedford
+47005Benton
+47007Bledsoe
+47009Blount
+47011Bradley
+47013Campbell
+47015Cannon
+47017Carroll
+47019Carter
+47021Cheatham
+47023Chester
+47025Claiborne
+47027Clay
+47029Cocke
+47031Coffee
+47033Crockett
+47035Cumberland
+47037Davidson
+47039Decatur
+47041DeKalb
+47043Dickson
+47045Dyer
+47047Fayette
+47049Fentress
+47051Franklin
+47053Gibson
+47055Giles
+47057Grainger
+47059Greene
+47061Grundy
+47063Hamblen
+47065Hamilton
+47067Hancock
+47069Hardeman
+47071Hardin
+47073Hawkins
+47075Haywood
+47077Henderson
+47079Henry
+47081Hickman
+47083Houston
+47085Humphreys
+47087Jackson
+47089Jefferson
+47091Johnson
+47093Knox
+47095Lake
+47097Lauderdale
+47099Lawrence
+47101Lewis
+47103Lincoln
+47105Loudon
+47107McMinn
+47109McNairy
+47111Macon
+47113Madison
+47115Marion
+47117Marshall
+47119Maury
+47121Meigs
+47123Monroe
+47125Montgomery
+47127Moore
+47129Morgan
+47131Obion
+47133Overton
+47135Perry
+47137Pickett
+47139Polk
+47141Putnam
+47143Rhea
+47145Roane
+47147Robertson
+47149Rutherford
+47151Scott
+47153Sequatchie
+47155Sevier
+47157Shelby
+47159Smith
+47161Stewart
+47163Sullivan
+47165Sumner
+47167Tipton
+47169Trousdale
+47171Unicoi
+47173Union
+47175Van Buren
+47177Warren
+47179Washington
+47181Wayne
+47183Weakley
+47185White
+47187Williamson
+47189Wilson
+48001Anderson
+48003Andrews
+48005Angelina
+48007Aransas
+48009Archer
+48011Armstrong
+48013Atascosa
+48015Austin
+48017Bailey
+48019Bandera
+48021Bastrop
+48023Baylor
+48025Bee
+48027Bell
+48029Bexar
+48031Blanco
+48033Borden
+48035Bosque
+48037Bowie
+48039Brazoria
+48041Brazos
+48043Brewster
+48045Briscoe
+48047Brooks
+48049Brown
+48051Burleson
+48053Burnet
+48055Caldwell
+48057Calhoun
+48059Callahan
+48061Cameron
+48063Camp
+48065Carson
+48067Cass
+48069Castro
+48071Chambers
+48073Cherokee
+48075Childress
+48077Clay
+48079Cochran
+48081Coke
+48083Coleman
+48085Collin
+48087Collingsworth
+48089Colorado
+48091Comal
+48093Comanche
+48095Concho
+48097Cooke
+48099Coryell
+48101Cottle
+48103Crane
+48105Crockett
+48107Crosby
+48109Culberson
+48111Dallam
+48113Dallas
+48115Dawson
+48117Deaf Smith
+48119Delta
+48121Denton
+48123DeWitt
+48125Dickens
+48127Dimmit
+48129Donley
+48131Duval
+48133Eastland
+48135Ector
+48137Edwards
+48139Ellis
+48141El Paso
+48143Erath
+48145Falls
+48147Fannin
+48149Fayette
+48151Fisher
+48153Floyd
+48155Foard
+48157Fort Bend
+48159Franklin
+48161Freestone
+48163Frio
+48165Gaines
+48167Galveston
+48169Garza
+48171Gillespie
+48173Glasscock
+48175Goliad
+48177Gonzales
+48179Gray
+48181Grayson
+48183Gregg
+48185Grimes
+48187Guadalupe
+48189Hale
+48191Hall
+48193Hamilton
+48195Hansford
+48197Hardeman
+48199Hardin
+48201Harris
+48203Harrison
+48205Hartley
+48207Haskell
+48209Hays
+48211Hemphill
+48213Henderson
+48215Hidalgo
+48217Hill
+48219Hockley
+48221Hood
+48223Hopkins
+48225Houston
+48227Howard
+48229Hudspeth
+48231Hunt
+48233Hutchinson
+48235Irion
+48237Jack
+48239Jackson
+48241Jasper
+48243Jeff Davis
+48245Jefferson
+48247Jim Hogg
+48249Jim Wells
+48251Johnson
+48253Jones
+48255Karnes
+48257Kaufman
+48259Kendall
+48261Kenedy
+48263Kent
+48265Kerr
+48267Kimble
+48269King
+48271Kinney
+48273Kleberg
+48275Knox
+48277Lamar
+48279Lamb
+48281Lampasas
+48283La Salle
+48285Lavaca
+48287Lee
+48289Leon
+48291Liberty
+48293Limestone
+48295Lipscomb
+48297Live Oak
+48299Llano
+48301Loving
+48303Lubbock
+48305Lynn
+48307McCulloch
+48309McLennan
+48311McMullen
+48313Madison
+48315Marion
+48317Martin
+48319Mason
+48321Matagorda
+48323Maverick
+48325Medina
+48327Menard
+48329Midland
+48331Milam
+48333Mills
+48335Mitchell
+48337Montague
+48339Montgomery
+48341Moore
+48343Morris
+48345Motley
+48347Nacogdoches
+48349Navarro
+48351Newton
+48353Nolan
+48355Nueces
+48357Ochiltree
+48359Oldham
+48361Orange
+48363Palo Pinto
+48365Panola
+48367Parker
+48369Parmer
+48371Pecos
+48373Polk
+48375Potter
+48377Presidio
+48379Rains
+48381Randall
+48383Reagan
+48385Real
+48387Red River
+48389Reeves
+48391Refugio
+48393Roberts
+48395Robertson
+48397Rockwall
+48399Runnels
+48401Rusk
+48403Sabine
+48405San Augustine
+48407San Jacinto
+48409San Patricio
+48411San Saba
+48413Schleicher
+48415Scurry
+48417Shackelford
+48419Shelby
+48421Sherman
+48423Smith
+48425Somervell
+48427Starr
+48429Stephens
+48431Sterling
+48433Stonewall
+48435Sutton
+48437Swisher
+48439Tarrant
+48441Taylor
+48443Terrell
+48445Terry
+48447Throckmorton
+48449Titus
+48451Tom Green
+48453Travis
+48455Trinity
+48457Tyler
+48459Upshur
+48461Upton
+48463Uvalde
+48465Val Verde
+48467Van Zandt
+48469Victoria
+48471Walker
+48473Waller
+48475Ward
+48477Washington
+48479Webb
+48481Wharton
+48483Wheeler
+48485Wichita
+48487Wilbarger
+48489Willacy
+48491Williamson
+48493Wilson
+48495Winkler
+48497Wise
+48499Wood
+48501Yoakum
+48503Young
+48505Zapata
+48507Zavala
+49001Beaver
+49003Box Elder
+49005Cache
+49007Carbon
+49009Daggett
+49011Davis
+49013Duchesne
+49015Emery
+49017Garfield
+49019Grand
+49021Iron
+49023Juab
+49025Kane
+49027Millard
+49029Morgan
+49031Piute
+49033Rich
+49035Salt Lake
+49037San Juan
+49039Sanpete
+49041Sevier
+49043Summit
+49045Tooele
+49047Uintah
+49049Utah
+49051Wasatch
+49053Washington
+49055Wayne
+49057Weber
+50001Addison
+50003Bennington
+50005Caledonia
+50007Chittenden
+50009Essex
+50011Franklin
+50013Grand Isle
+50015Lamoille
+50017Orange
+50019Orleans
+50021Rutland
+50023Washington
+50025Windham
+50027Windsor
+51001Accomack
+51003Albemarle
+51005Alleghany
+51007Amelia
+51009Amherst
+51011Appomattox
+51013Arlington
+51015Augusta
+51017Bath
+51019Bedford
+51021Bland
+51023Botetourt
+51025Brunswick
+51027Buchanan
+51029Buckingham
+51031Campbell
+51033Caroline
+51035Carroll
+51036Charles City
+51037Charlotte
+51041Chesterfield
+51043Clarke
+51045Craig
+51047Culpeper
+51049Cumberland
+51051Dickenson
+51053Dinwiddie
+51057Essex
+51059Fairfax
+51061Fauquier
+51063Floyd
+51065Fluvanna
+51067Franklin
+51069Frederick
+51071Giles
+51073Gloucester
+51075Goochland
+51077Grayson
+51079Greene
+51081Greensville
+51083Halifax
+51085Hanover
+51087Henrico
+51089Henry
+51091Highland
+51093Isle of Wight
+51095James City
+51097King and Queen
+51099King George
+51101King William
+51103Lancaster
+51105Lee
+51107Loudoun
+51109Louisa
+51111Lunenburg
+51113Madison
+51115Mathews
+51117Mecklenburg
+51119Middlesex
+51121Montgomery
+51125Nelson
+51127New Kent
+51131Northampton
+51133Northumberland
+51135Nottoway
+51137Orange
+51139Page
+51141Patrick
+51143Pittsylvania
+51145Powhatan
+51147Prince Edward
+51149Prince George
+51153Prince William
+51155Pulaski
+51157Rappahannock
+51159Richmond
+51161Roanoke
+51163Rockbridge
+51165Rockingham
+51167Russell
+51169Scott
+51171Shenandoah
+51173Smyth
+51175Southampton
+51177Spotsylvania
+51179Stafford
+51181Surry
+51183Sussex
+51185Tazewell
+51187Warren
+51191Washington
+51193Westmoreland
+51195Wise
+51197Wythe
+51199York
+51510~Alexandria city
+51520~Bristol city
+51530~Buena Vista city
+51540~Charlottesville city
+51550~Chesapeake city
+51570~Colonial Heights city
+51580~Covington city
+51590~Danville city
+51595~Emporia city
+51600~Fairfax city
+51610~Falls Church city
+51620~Franklin city
+51630~Fredericksburg city
+51640~Galax city
+51650~Hampton city
+51660~Harrisonburg city
+51670~Hopewell city
+51678~Lexington city
+51680~Lynchburg city
+51683~Manassas city
+51685~Manassas Park city
+51690~Martinsville city
+51700~Newport News city
+51710~Norfolk city
+51720~Norton city
+51730~Petersburg city
+51735~Poquoson city
+51740~Portsmouth city
+51750~Radford city
+51760~Richmond city
+51770~Roanoke city
+51775~Salem city
+51790~Staunton city
+51800~Suffolk city
+51810~Virginia Beach city
+51820~Waynesboro city
+51830~Williamsburg city
+51840~Winchester city
+53001Adams
+53003Asotin
+53005Benton
+53007Chelan
+53009Clallam
+53011Clark
+53013Columbia
+53015Cowlitz
+53017Douglas
+53019Ferry
+53021Franklin
+53023Garfield
+53025Grant
+53027Grays Harbor
+53029Island
+53031Jefferson
+53033King
+53035Kitsap
+53037Kittitas
+53039Klickitat
+53041Lewis
+53043Lincoln
+53045Mason
+53047Okanogan
+53049Pacific
+53051Pend Oreille
+53053Pierce
+53055San Juan
+53057Skagit
+53059Skamania
+53061Snohomish
+53063Spokane
+53065Stevens
+53067Thurston
+53069Wahkiakum
+53071Walla Walla
+53073Whatcom
+53075Whitman
+53077Yakima
+54001Barbour
+54003Berkeley
+54005Boone
+54007Braxton
+54009Brooke
+54011Cabell
+54013Calhoun
+54015Clay
+54017Doddridge
+54019Fayette
+54021Gilmer
+54023Grant
+54025Greenbrier
+54027Hampshire
+54029Hancock
+54031Hardy
+54033Harrison
+54035Jackson
+54037Jefferson
+54039Kanawha
+54041Lewis
+54043Lincoln
+54045Logan
+54047McDowell
+54049Marion
+54051Marshall
+54053Mason
+54055Mercer
+54057Mineral
+54059Mingo
+54061Monongalia
+54063Monroe
+54065Morgan
+54067Nicholas
+54069Ohio
+54071Pendleton
+54073Pleasants
+54075Pocahontas
+54077Preston
+54079Putnam
+54081Raleigh
+54083Randolph
+54085Ritchie
+54087Roane
+54089Summers
+54091Taylor
+54093Tucker
+54095Tyler
+54097Upshur
+54099Wayne
+54101Webster
+54103Wetzel
+54105Wirt
+54107Wood
+54109Wyoming
+55001Adams
+55003Ashland
+55005Barron
+55007Bayfield
+55009Brown
+55011Buffalo
+55013Burnett
+55015Calumet
+55017Chippewa
+55019Clark
+55021Columbia
+55023Crawford
+55025Dane
+55027Dodge
+55029Door
+55031Douglas
+55033Dunn
+55035Eau Claire
+55037Florence
+55039Fond du Lac
+55041Forest
+55043Grant
+55045Green
+55047Green Lake
+55049Iowa
+55051Iron
+55053Jackson
+55055Jefferson
+55057Juneau
+55059Kenosha
+55061Kewaunee
+55063La Crosse
+55065Lafayette
+55067Langlade
+55069Lincoln
+55071Manitowoc
+55073Marathon
+55075Marinette
+55077Marquette
+55078Menominee
+55079Milwaukee
+55081Monroe
+55083Oconto
+55085Oneida
+55087Outagamie
+55089Ozaukee
+55091Pepin
+55093Pierce
+55095Polk
+55097Portage
+55099Price
+55101Racine
+55103Richland
+55105Rock
+55107Rusk
+55109St. Croix
+55111Sauk
+55113Sawyer
+55115Shawano
+55117Sheboygan
+55119Taylor
+55121Trempealeau
+55123Vernon
+55125Vilas
+55127Walworth
+55129Washburn
+55131Washington
+55133Waukesha
+55135Waupaca
+55137Waushara
+55139Winnebago
+55141Wood
+56001Albany
+56003Big Horn
+56005Campbell
+56007Carbon
+56009Converse
+56011Crook
+56013Fremont
+56015Goshen
+56017Hot Springs
+56019Johnson
+56021Laramie
+56023Lincoln
+56025Natrona
+56027Niobrara
+56029Park
+56031Platte
+56033Sheridan
+56035Sublette
+56037Sweetwater
+56039Teton
+56041Uinta
+56043Washakie
+56045Weston
+60010~Eastern District
+60020~Manu'a District
+60030~Rose Island
+60040~Swains Island
+60050~Western District
+66010~Guam
+69085~Northern Islands Municipality
+69100~Rota Municipality
+69110~Saipan Municipality
+69120~Tinian Municipality
+72001~Adjuntas Municipio
+72003~Aguada Municipio
+72005~Aguadilla Municipio
+72007~Aguas Buenas Municipio
+72009~Aibonito Municipio
+72011~Añasco Municipio
+72013~Arecibo Municipio
+72015~Arroyo Municipio
+72017~Barceloneta Municipio
+72019~Barranquitas Municipio
+72021~Bayamón Municipio
+72023~Cabo Rojo Municipio
+72025~Caguas Municipio
+72027~Camuy Municipio
+72029~Canóvanas Municipio
+72031~Carolina Municipio
+72033~Cataño Municipio
+72035~Cayey Municipio
+72037~Ceiba Municipio
+72039~Ciales Municipio
+72041~Cidra Municipio
+72043~Coamo Municipio
+72045~Comerío Municipio
+72047~Corozal Municipio
+72049~Culebra Municipio
+72051~Dorado Municipio
+72053~Fajardo Municipio
+72054~Florida Municipio
+72055~Guánica Municipio
+72057~Guayama Municipio
+72059~Guayanilla Municipio
+72061~Guaynabo Municipio
+72063~Gurabo Municipio
+72065~Hatillo Municipio
+72067~Hormigueros Municipio
+72069~Humacao Municipio
+72071~Isabela Municipio
+72073~Jayuya Municipio
+72075~Juana Díaz Municipio
+72077~Juncos Municipio
+72079~Lajas Municipio
+72081~Lares Municipio
+72083~Las Marías Municipio
+72085~Las Piedras Municipio
+72087~Loíza Municipio
+72089~Luquillo Municipio
+72091~Manatí Municipio
+72093~Maricao Municipio
+72095~Maunabo Municipio
+72097~Mayagüez Municipio
+72099~Moca Municipio
+72101~Morovis Municipio
+72103~Naguabo Municipio
+72105~Naranjito Municipio
+72107~Orocovis Municipio
+72109~Patillas Municipio
+72111~Peñuelas Municipio
+72113~Ponce Municipio
+72115~Quebradillas Municipio
+72117~Rincón Municipio
+72119~Río Grande Municipio
+72121~Sabana Grande Municipio
+72123~Salinas Municipio
+72125~San Germán Municipio
+72127~San Juan Municipio
+72129~San Lorenzo Municipio
+72131~San Sebastián Municipio
+72133~Santa Isabel Municipio
+72135~Toa Alta Municipio
+72137~Toa Baja Municipio
+72139~Trujillo Alto Municipio
+72141~Utuado Municipio
+72143~Vega Alta Municipio
+72145~Vega Baja Municipio
+72147~Vieques Municipio
+72149~Villalba Municipio
+72151~Yabucoa Municipio
+72153~Yauco Municipio
+74300~Midway Islands
+78010~St. Croix Island
+78020~St. John Island
+78030~St. Thomas Island

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map - USDA Section 515 Property Atlas</title>
+<meta name="description" content="Searchable atlas of USDA Section 515 and 514 rural rental housing properties, built from USDA Rural Development open data.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="mask-icon" href="favicon.svg" color="#081937">
+<link rel="stylesheet" href="assets/styles.css">
+<script src="assets/config.js"></script>
+<script>
+// Hide the interface before first paint when the data is gated and there is no
+// session yet. Without this the table frame flashes up and is then covered.
+(function () {
+  var base = window.ATLAS_DATA_BASE || "data";
+  if (!/^https?:\/\//i.test(base)) return;
+  var stored = null;
+  try { stored = localStorage.getItem("atlas.session"); } catch (e) {}
+  if (!stored && !/[#&]atlas_token=/.test(location.hash || "")) {
+    document.documentElement.className += " atlas-locked";
+  }
+})();
+</script>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <h1>USDA Section 515 Property Atlas</h1>
+    <p class="sub" id="masthead-sub">Rural Rental Housing and Farm Labor Housing, from USDA Rural Development open data</p>
+    <div class="session" id="session"></div>
+  </div>
+  <p class="asof" id="asof"></p>
+  <nav class="tabs">
+    <a href="index.html">Table</a>
+    <a href="map.html" class="active">Map</a>
+    <a href="companies.html">Companies</a>
+    <a href="portfolios.html">Portfolios</a>
+  </nav>
+</header>
+<main>
+    <div class="panel filters" id="filterbar">
+      <div class="field wide">
+        <label for="f-q">Property or owner</label>
+        <input type="search" id="f-q" placeholder="Name, borrower, management" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="f-city">City</label>
+        <input type="search" id="f-city" placeholder="City" autocomplete="off">
+      </div>
+
+      <div class="field" id="w-state">
+        <label for="i-state">State</label>
+        <div class="chipbox">
+          <span class="chips"></span>
+          <input type="text" id="i-state" placeholder="VA, Virginia" autocomplete="off"
+                 role="combobox" aria-expanded="false" aria-autocomplete="list">
+          <ul class="menu" hidden role="listbox"></ul>
+        </div>
+      </div>
+
+      <div class="field" id="w-county">
+        <label for="i-county">County</label>
+        <div class="chipbox">
+          <span class="chips"></span>
+          <input type="text" id="i-county" placeholder="Start typing" autocomplete="off"
+                 role="combobox" aria-expanded="false" aria-autocomplete="list">
+          <ul class="menu" hidden role="listbox"></ul>
+        </div>
+      </div>
+
+      <div class="field" id="w-program">
+        <label for="i-program">Program</label>
+        <div class="chipbox">
+          <span class="chips"></span>
+          <input type="text" id="i-program" placeholder="515, 514" autocomplete="off"
+                 role="combobox" aria-expanded="false" aria-autocomplete="list">
+          <ul class="menu" hidden role="listbox"></ul>
+        </div>
+      </div>
+
+      <div class="field" id="w-rental">
+        <label for="i-rental">Tenant type</label>
+        <div class="chipbox">
+          <span class="chips"></span>
+          <input type="text" id="i-rental" placeholder="Family, elderly" autocomplete="off"
+                 role="combobox" aria-expanded="false" aria-autocomplete="list">
+          <ul class="menu" hidden role="listbox"></ul>
+        </div>
+      </div>
+
+      <div class="field range">
+        <label>Units</label>
+        <div class="pair">
+          <input type="number" id="f-units-min" min="0" step="4" placeholder="Min" aria-label="Minimum units">
+          <span class="dash">to</span>
+          <input type="number" id="f-units-max" min="0" step="4" placeholder="Max" aria-label="Maximum units">
+        </div>
+      </div>
+
+      <div class="field range">
+        <label>Exits within</label>
+        <div class="pair">
+          <input type="number" id="f-exit-min" min="0" step="1" placeholder="Min" aria-label="Earliest years to exit">
+          <span class="dash">to</span>
+          <input type="number" id="f-exit-max" min="0" step="1" placeholder="Max" aria-label="Latest years to exit">
+          <span class="unit">yrs</span>
+        </div>
+      </div>
+
+      <div class="field seg">
+        <label>Tax credits</label>
+        <div class="segment" id="w-lihtc" role="group" aria-label="Tax credits">
+          <button type="button" data-v="">Any</button>
+          <button type="button" data-v="y">LIHTC</button>
+          <button type="button" data-v="n">None</button>
+        </div>
+      </div>
+
+      <div class="field seg seg-wide">
+        <label>Has subsidy</label>
+        <div class="segment five" id="w-subsidy" role="group" aria-label="Has subsidy">
+          <button type="button" data-v="">Any</button>
+          <button type="button" data-v="ra" title="Carries Section 521 Rental Assistance units">RA</button>
+          <button type="button" data-v="s8" title="Carries a project-based Section 8 HAP contract">S8</button>
+          <button type="button" data-v="other" title="Section 202/811 PRAC or PRA. Project-based assistance, but no mark-up-to-market path">Other</button>
+          <button type="button" data-v="none" title="No rental assistance and no project-based contract">None</button>
+        </div>
+      </div>
+
+      <div class="field seg">
+        <label>Prepay eligible</label>
+        <div class="segment" id="w-prepay" role="group" aria-label="Prepay eligible now">
+          <button type="button" data-v="">Any</button>
+          <button type="button" data-v="y">Now</button>
+          <button type="button" data-v="n">Not yet</button>
+        </div>
+      </div>
+
+      <div class="field act">
+        <label>&nbsp;</label>
+        <button class="btn clearall" id="f-reset" type="button">Clear all</button>
+      </div>
+    </div>
+
+    <div class="chip-banner" id="mgmt-banner" hidden></div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="panel" style="padding:10px">
+      <div id="map"></div>
+    </div>
+
+    <p class="note" id="sourcenote"></p>
+</main>
+<footer class="datanote">
+  <details>
+    <summary>About this data</summary>
+    <div class="datanote-body">
+      <h3>What this is</h3>
+      <p>A searchable atlas of every active property in USDA Rural Development's multifamily
+      portfolio: Section 515 Rural Rental Housing, plus Section 514 off-farm and on-farm Farm
+      Labor Housing. Each property carries its location, unit mix, Section 521 rental assistance
+      count, tax credit status, ownership, and the year USDA projects its loan will pay off and
+      the property will leave the program.</p>
+
+      <h3>Where the data comes from</h3>
+      <p>Three sources, all public domain:</p>
+      <ul>
+        <li><strong>Property Characteristics.</strong> The active projects workbook on
+        <a href="https://www.sc.egov.usda.gov/data/MFH_section_515.html" target="_blank" rel="noopener">USDA's Section 514/515 data page</a>,
+        with the <a href="https://www.sc.egov.usda.gov/data/files/MFH_Section_515/ActiveProjects/USDA-RUR.PDF" target="_blank" rel="noopener">public data dictionary</a>.</li>
+        <li><strong>Program Exit Data.</strong> The loan maturity and payoff projections on
+        <a href="https://www.sc.egov.usda.gov/data/MFH.html" target="_blank" rel="noopener">USDA's multifamily housing data index</a>,
+        with its own <a href="https://www.sc.egov.usda.gov/data/files/MFH/USDA%20Multifamily%20Housing%20Program%20Exit%20Data_Data%20Dictionary-May%202023.pdf" target="_blank" rel="noopener">data dictionary</a>.</li>
+        <li><strong>HUD income limits.</strong> The Section 8 income limits workbook for the
+        current fiscal year, covering every county and HUD metro area.</li>
+      </ul>
+      <p>The USDA files are joined on the MFIS project key, which is the borrower number,
+      project number, and check digit combined. The join is close to complete. The handful of
+      properties without Program Exit Data show a blank exit year rather than a guess.</p>
+
+      <h3>How to read the exit year</h3>
+      <p>USDA's <em>estimated property exit year</em> is the year the agency expects the property
+      to leave the program, keyed to loan maturity. It is not the same as the
+      <em>loan payoff year</em>, which reflects prepayment status and the remaining principal
+      balance, and the two often differ. A property can also become eligible to prepay well before
+      either date, which the <em>prepay eligible</em> fields capture. All three are shown on the
+      detail panel so the timing question can be read properly rather than reduced to one number.</p>
+      <p>Nothing here is a prediction of what an owner will do. It is USDA's own projection of
+      when the regulatory clock runs out.</p>
+
+      <h3>How the Section 8 flag is built</h3>
+      <p>USDA's file carries no Section 8 indicator, so the flag comes from the PBS8 Database and
+      is matched on street address, ZIP, county, city, property name and contract size. A match is
+      only accepted when at least one strong piece of evidence lines up, and the detail panel says
+      which. A blank is usually correct rather than a gap: HUD's 515/8 contract universe includes
+      properties whose USDA loan has already paid off, and earlier phases of properties whose later
+      phase is the one still carrying a loan.</p>
+      <p>A <strong>Yes</strong> means the property carries a project-based rental assistance
+      contract. Most are conventional Section 8. A minority are Section 202 PRAC or Section 811
+      project rental assistance, and those read <strong>Yes*</strong>. The distinction matters in
+      one place: mark-up-to-market and the MAHRA renewal options are Section 8 mechanisms, so a
+      starred property has no comparability-study path and its rents move by budget-based
+      adjustment instead. Anything screening for mark-up-to-market should exclude the starred
+      rows. The detail panel names the contract family for every match.</p>
+
+      <h3>Known limits</h3>
+      <ul>
+        <li>USDA refreshes these files a few times a year, and the two carry different as-of
+        dates. Both dates are printed at the foot of the table and map pages.</li>
+        <li>Only active properties appear. Anything that has already exited is gone from the source file.</li>
+        <li>County names come from the Census county crosswalk. If that file has not been added to
+        the build, the county column falls back to the five-digit FIPS code.</li>
+        <li>Coordinates are USDA's. A small number of properties have no usable coordinates and
+        appear in the table but not on the map.</li>
+        <li>Unit counts are authorized units, which can differ from what is physically standing.</li>
+      </ul>
+
+      <h3>Reuse</h3>
+      <p>The source data is federal open data in the public domain. The full joined dataset is
+      available as <a href="data/properties.csv">CSV</a> and
+      <a href="data/properties.geojson">GeoJSON</a>.</p>
+    </div>
+  </details>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/esri-leaflet/3.0.12/esri-leaflet.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/map.js"></script>
+<script src="assets/game.js"></script>
+</body>
+</html>
